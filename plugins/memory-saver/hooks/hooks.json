@@ -1,0 +1,13 @@
+{
+  "hooks": {
+    "PreCompact": [
+      {
+        "name": "save-memory",
+        "description": "Save session memory before context compaction",
+        "command": "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/save_memory.py",
+        "timeout": 60000,
+        "blocking": true
+      }
+    ]
+  }
+}
