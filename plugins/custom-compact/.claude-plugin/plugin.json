@@ -7,6 +7,5 @@
   },
   "license": "MIT",
   "repository": "https://github.com/sekigaharaEI/nero-cc-marketplace",
-  "keywords": ["memory", "context", "compaction", "productivity", "automation"],
-  "hooks": "./hooks/hooks.json"
+  "keywords": ["memory", "context", "compaction", "productivity", "automation"]
 }
