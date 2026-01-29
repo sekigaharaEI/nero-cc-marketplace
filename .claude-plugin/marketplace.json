@@ -18,7 +18,7 @@
       "name": "memory-stalker",
       "source": "./plugins/memory-stalker",
       "description": "记忆追猎者 - 智能压缩、可溯源存储、接续对话。让记忆无所遁形。",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "tags": ["productivity", "memory", "automation", "resume", "context"]
     }
   ]
