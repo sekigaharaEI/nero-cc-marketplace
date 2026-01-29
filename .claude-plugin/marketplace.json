@@ -10,8 +10,8 @@
   "repository": "https://github.com/sekigaharaEI/nero-cc-marketplace",
   "plugins": [
     {
-      "name": "memory-saver",
-      "path": "plugins/memory-saver",
+      "name": "custom-compact",
+      "path": "plugins/custom-compact",
       "description": "Automatically save session memories before context compaction",
       "version": "1.0.0",
       "tags": ["productivity", "memory", "automation"]

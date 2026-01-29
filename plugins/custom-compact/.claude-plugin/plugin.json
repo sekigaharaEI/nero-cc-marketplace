@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/anthropics/claude-code/main/schemas/plugin.json",
-  "name": "memory-saver",
-  "displayName": "Memory Saver",
+  "name": "custom-compact",
+  "displayName": "Custom Compact",
   "description": "Automatically extract and save session memories before context compaction. Preserves key decisions, code changes, user preferences, and pending tasks.",
   "version": "1.0.0",
   "author": {

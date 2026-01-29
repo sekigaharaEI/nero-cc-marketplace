@@ -1,4 +1,4 @@
-# Memory Saver
+# Custom Compact
 
 在 Claude Code 上下文压缩（PreCompact）前，自动将当前会话的关键信息提取并保存为 Markdown 文件。
 
@@ -39,7 +39,7 @@
 2. 安装插件:
 
 ```bash
-/plugin install memory-saver@nero-cc-marketplace
+/plugin install custom-compact@nero-cc-marketplace
 ```
 
 3. 安装 Python 依赖:
@@ -111,7 +111,7 @@ tail -f ~/.claude/logs/save_memory.log
 ## 文件结构
 
 ```
-memory-saver/
+custom-compact/
 ├── .claude-plugin/
 │   └── plugin.json          # 插件清单
 ├── hooks/

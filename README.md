@@ -26,11 +26,11 @@
 
 | 插件名称 | 版本 | 描述 |
 |---------|------|------|
-| [memory-saver](./plugins/memory-saver/) | 1.0.0 | 在上下文压缩前自动保存会话记忆 |
+| [custom-compact](./plugins/custom-compact/) | 1.0.0 | 在上下文压缩前自动保存会话记忆 |
 
 ## 插件详情
 
-### memory-saver
+### custom-compact
 
 在 Claude Code 上下文压缩（PreCompact）前，自动将当前会话的关键信息提取并保存为 Markdown 文件。
 
@@ -42,12 +42,12 @@
 
 **安装:**
 ```bash
-/plugin install memory-saver@nero-cc-marketplace
+/plugin install custom-compact@nero-cc-marketplace
 pip install anthropic>=0.18.0
 export ANTHROPIC_API_KEY="your-api-key"
 ```
 
-[查看详细文档](./plugins/memory-saver/README.md)
+[查看详细文档](./plugins/custom-compact/README.md)
 
 ## 仓库结构
 
@@ -56,7 +56,7 @@ nero-cc-marketplace/
 ├── .claude-plugin/
 │   └── marketplace.json        # Marketplace 清单
 ├── plugins/
-│   └── memory-saver/           # Memory Saver 插件
+│   └── custom-compact/         # Custom Compact 插件
 │       ├── .claude-plugin/
 │       │   └── plugin.json     # 插件清单
 │       ├── hooks/
