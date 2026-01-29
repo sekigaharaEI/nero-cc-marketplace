@@ -1,17 +1,15 @@
 {
-  "$schema": "https://raw.githubusercontent.com/anthropics/claude-code/main/schemas/marketplace.json",
   "name": "nero-cc-marketplace",
-  "displayName": "Nero's Claude Code Marketplace",
-  "description": "Personal Claude Code plugin marketplace - A collection of productivity plugins for Claude Code",
   "owner": {
-    "name": "Nero",
-    "url": "https://github.com/sekigaharaEI"
+    "name": "Nero"
   },
-  "repository": "https://github.com/sekigaharaEI/nero-cc-marketplace",
+  "metadata": {
+    "description": "Personal Claude Code plugin marketplace - A collection of productivity plugins for Claude Code"
+  },
   "plugins": [
     {
       "name": "custom-compact",
-      "source": "plugins/custom-compact",
+      "source": "./plugins/custom-compact",
       "description": "Automatically save session memories before context compaction",
       "version": "1.0.0",
       "tags": ["productivity", "memory", "automation"]
