@@ -1,7 +1,5 @@
 ---
-name: memories_nero
 description: 交互式浏览和选择记忆文件 - Memory Stalker 记忆追猎者
-user_invocable: true
 ---
 
 <memories_nero>
@@ -18,7 +16,7 @@ user_invocable: true
 
 ## 执行指令
 
-当用户调用此 Skill 时，请按以下步骤执行：
+当用户调用此命令时，请按以下步骤执行：
 
 ### 步骤 1: 获取记忆文件列表
 
@@ -28,7 +26,7 @@ user_invocable: true
 python ${CLAUDE_PROJECT_DIR}/plugins/memory-stalker/scripts/list_memories.py "${CLAUDE_PROJECT_DIR}" --json
 ```
 
-注意：如果插件是通过 marketplace 安装的，脚本路径可能在 `~/.claude/plugins/memory-stalker/scripts/` 下。
+注意：如果插件是通过 marketplace 安装的，脚本路径可能在 `~/.claude/plugins/cache/nero-cc-marketplace/memory-stalker/*/scripts/` 下。
 
 ### 步骤 2: 展示记忆列表
 

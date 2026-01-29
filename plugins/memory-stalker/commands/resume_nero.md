@@ -1,7 +1,6 @@
 ---
-name: resume_nero
 description: 基于记忆文件接续对话 - Memory Stalker 记忆追猎者
-user_invocable: true
+argument_description: "[target] - 可选参数: latest, 日期(20260129), session ID(ff246da3)"
 ---
 
 <resume_nero>
@@ -21,7 +20,7 @@ user_invocable: true
 
 ## 执行指令
 
-当用户调用此 Skill 时，请按以下步骤执行：
+当用户调用此命令时，请按以下步骤执行：
 
 ### 步骤 1: 获取参数
 
@@ -46,7 +45,7 @@ python ${CLAUDE_PROJECT_DIR}/plugins/memory-stalker/scripts/list_memories.py "${
 python ${CLAUDE_PROJECT_DIR}/plugins/memory-stalker/scripts/list_memories.py "${CLAUDE_PROJECT_DIR}" -l 5 --json
 ```
 
-注意：如果插件是通过 marketplace 安装的，脚本路径可能在 `~/.claude/plugins/memory-stalker/scripts/` 下。
+注意：如果插件是通过 marketplace 安装的，脚本路径可能在 `~/.claude/plugins/cache/nero-cc-marketplace/memory-stalker/*/scripts/` 下。
 
 ### 步骤 3: 处理结果
 
