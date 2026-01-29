@@ -3,7 +3,7 @@
   "name": "nero-cc-marketplace",
   "displayName": "Nero's Claude Code Marketplace",
   "description": "Personal Claude Code plugin marketplace - A collection of productivity plugins for Claude Code",
-  "author": {
+  "owner": {
     "name": "Nero",
     "url": "https://github.com/sekigaharaEI"
   },
@@ -11,7 +11,7 @@
   "plugins": [
     {
       "name": "custom-compact",
-      "path": "plugins/custom-compact",
+      "source": "plugins/custom-compact",
       "description": "Automatically save session memories before context compaction",
       "version": "1.0.0",
       "tags": ["productivity", "memory", "automation"]
