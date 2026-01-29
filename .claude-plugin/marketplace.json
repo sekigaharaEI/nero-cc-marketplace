@@ -11,7 +11,7 @@
       "name": "custom-compact",
       "source": "./plugins/custom-compact",
       "description": "Automatically save session memories before context compaction",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "tags": ["productivity", "memory", "automation"]
     }
   ]

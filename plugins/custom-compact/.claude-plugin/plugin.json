@@ -1,7 +1,7 @@
 {
   "name": "custom-compact",
   "description": "Automatically extract and save session memories before context compaction. Preserves key decisions, code changes, user preferences, and pending tasks.",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": {
     "name": "Nero"
   },
