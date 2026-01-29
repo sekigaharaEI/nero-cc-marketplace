@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """
 Memory Saver - Claude Code Plugin
 Automatically saves session memories before context compaction.
@@ -8,6 +9,8 @@ This script is triggered by the PreCompact hook and:
 2. Parses the transcript.jsonl to extract conversation content
 3. Calls Anthropic API to generate a structured memory summary
 4. Saves the memory to {project}/.claude/memories/{timestamp}_{session_id}.md
+
+Compatible with Python 3.6+
 """
 
 import json
@@ -16,7 +19,6 @@ import sys
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 # Setup logging
 LOG_DIR = Path.home() / ".claude" / "logs"
@@ -34,7 +36,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def get_plugin_root() -> Path:
+def get_plugin_root():
     """Get the plugin root directory from environment variable."""
     plugin_root = os.environ.get("CLAUDE_PLUGIN_ROOT")
     if plugin_root:
@@ -43,7 +45,7 @@ def get_plugin_root() -> Path:
     return Path(__file__).parent.parent
 
 
-def get_api_config() -> dict:
+def get_api_config():
     """Get Anthropic API configuration from environment variables."""
     api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")
     if not api_key:
@@ -59,19 +61,19 @@ def get_api_config() -> dict:
     }
 
 
-def load_prompt_template() -> str:
+def load_prompt_template():
     """Load the memory prompt template from the plugin's scripts directory."""
     plugin_root = get_plugin_root()
     prompt_file = plugin_root / "scripts" / "memory_prompt.txt"
 
     if not prompt_file.exists():
-        logger.warning(f"Prompt template not found at {prompt_file}, using default")
+        logger.warning("Prompt template not found at %s, using default", prompt_file)
         return get_default_prompt()
 
     return prompt_file.read_text(encoding="utf-8")
 
 
-def get_default_prompt() -> str:
+def get_default_prompt():
     """Return the default prompt template if file is not found."""
     return """你是一个专业的会话记忆提取助手。请分析以下 Claude Code 会话记录，提取关键信息并生成结构化的记忆摘要。
 
@@ -111,13 +113,13 @@ def get_default_prompt() -> str:
 - 使用中文输出"""
 
 
-def parse_transcript(transcript_path: str) -> list[dict]:
+def parse_transcript(transcript_path):
     """Parse the transcript.jsonl file and extract conversation messages."""
     messages = []
     transcript_file = Path(transcript_path)
 
     if not transcript_file.exists():
-        logger.error(f"Transcript file not found: {transcript_path}")
+        logger.error("Transcript file not found: %s", transcript_path)
         return messages
 
     try:
@@ -130,15 +132,15 @@ def parse_transcript(transcript_path: str) -> list[dict]:
                     entry = json.loads(line)
                     messages.append(entry)
                 except json.JSONDecodeError as e:
-                    logger.warning(f"Failed to parse transcript line: {e}")
+                    logger.warning("Failed to parse transcript line: %s", e)
                     continue
     except Exception as e:
-        logger.error(f"Failed to read transcript file: {e}")
+        logger.error("Failed to read transcript file: %s", e)
 
     return messages
 
 
-def extract_conversation_text(messages: list[dict]) -> str:
+def extract_conversation_text(messages):
     """Extract readable conversation text from transcript messages."""
     conversation_parts = []
 
@@ -148,14 +150,14 @@ def extract_conversation_text(messages: list[dict]) -> str:
         if msg_type == "user":
             content = msg.get("message", {}).get("content", "")
             if isinstance(content, str):
-                conversation_parts.append(f"User: {content}")
+                conversation_parts.append("User: " + content)
             elif isinstance(content, list):
                 text_parts = []
                 for item in content:
                     if isinstance(item, dict) and item.get("type") == "text":
                         text_parts.append(item.get("text", ""))
                 if text_parts:
-                    conversation_parts.append(f"User: {' '.join(text_parts)}")
+                    conversation_parts.append("User: " + " ".join(text_parts))
 
         elif msg_type == "assistant":
             content = msg.get("message", {}).get("content", [])
@@ -165,19 +167,14 @@ def extract_conversation_text(messages: list[dict]) -> str:
                     if isinstance(item, dict) and item.get("type") == "text":
                         text_parts.append(item.get("text", ""))
                 if text_parts:
-                    conversation_parts.append(f"Assistant: {' '.join(text_parts)}")
+                    conversation_parts.append("Assistant: " + " ".join(text_parts))
             elif isinstance(content, str):
-                conversation_parts.append(f"Assistant: {content}")
+                conversation_parts.append("Assistant: " + content)
 
     return "\n\n".join(conversation_parts)
 
 
-def generate_memory_summary(
-    conversation_text: str,
-    session_id: str,
-    project_path: str,
-    api_config: dict
-) -> Optional[str]:
+def generate_memory_summary(conversation_text, session_id, project_path, api_config):
     """Call Anthropic API to generate a memory summary."""
     try:
         import anthropic
@@ -188,14 +185,18 @@ def generate_memory_summary(
     prompt_template = load_prompt_template()
 
     # Build the user message
-    user_message = f"""## 会话信息
+    user_message = """## 会话信息
 - Session ID: {session_id}
 - 项目路径: {project_path}
 
 ## 会话记录
 {conversation_text}
 
-请根据以上会话记录生成结构化的记忆摘要。"""
+请根据以上会话记录生成结构化的记忆摘要。""".format(
+        session_id=session_id,
+        project_path=project_path,
+        conversation_text=conversation_text
+    )
 
     try:
         client_kwargs = {"api_key": api_config["api_key"]}
@@ -220,11 +221,11 @@ def generate_memory_summary(
         return None
 
     except Exception as e:
-        logger.error(f"API call failed: {e}")
+        logger.error("API call failed: %s", e)
         return None
 
 
-def save_memory(memory_content: str, project_path: str, session_id: str) -> Optional[Path]:
+def save_memory(memory_content, project_path, session_id):
     """Save the memory content to a markdown file."""
     memories_dir = Path(project_path) / ".claude" / "memories"
     memories_dir.mkdir(parents=True, exist_ok=True)
@@ -232,16 +233,16 @@ def save_memory(memory_content: str, project_path: str, session_id: str) -> Opti
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     # Use first 8 chars of session_id for filename
     short_session_id = session_id[:8] if len(session_id) > 8 else session_id
-    filename = f"{timestamp}_{short_session_id}.md"
+    filename = "{timestamp}_{session_id}.md".format(timestamp=timestamp, session_id=short_session_id)
 
     memory_file = memories_dir / filename
 
     try:
         memory_file.write_text(memory_content, encoding="utf-8")
-        logger.info(f"Memory saved to: {memory_file}")
+        logger.info("Memory saved to: %s", memory_file)
         return memory_file
     except Exception as e:
-        logger.error(f"Failed to save memory file: {e}")
+        logger.error("Failed to save memory file: %s", e)
         return None
 
 
@@ -253,7 +254,7 @@ def main():
     try:
         hook_input = json.load(sys.stdin)
     except json.JSONDecodeError as e:
-        logger.error(f"Failed to parse hook input: {e}")
+        logger.error("Failed to parse hook input: %s", e)
         # Output success to not block the compaction
         print(json.dumps({"continue": True}))
         return
@@ -262,9 +263,9 @@ def main():
     transcript_path = hook_input.get("transcript_path", "")
     project_path = hook_input.get("cwd", os.getcwd())
 
-    logger.info(f"Processing session: {session_id}")
-    logger.info(f"Transcript path: {transcript_path}")
-    logger.info(f"Project path: {project_path}")
+    logger.info("Processing session: %s", session_id)
+    logger.info("Transcript path: %s", transcript_path)
+    logger.info("Project path: %s", project_path)
 
     # Parse transcript
     messages = parse_transcript(transcript_path)
@@ -283,7 +284,7 @@ def main():
     # Limit conversation text to avoid token limits
     max_chars = 50000
     if len(conversation_text) > max_chars:
-        logger.info(f"Truncating conversation text from {len(conversation_text)} to {max_chars} chars")
+        logger.info("Truncating conversation text from %d to %d chars", len(conversation_text), max_chars)
         conversation_text = conversation_text[:max_chars] + "\n\n[... 对话内容已截断 ...]"
 
     # Get API config
@@ -305,7 +306,7 @@ def main():
     if memory_content:
         saved_path = save_memory(memory_content, project_path, session_id)
         if saved_path:
-            logger.info(f"Memory successfully saved to {saved_path}")
+            logger.info("Memory successfully saved to %s", saved_path)
     else:
         logger.warning("Failed to generate memory summary")
 
