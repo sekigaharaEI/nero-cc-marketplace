@@ -12,21 +12,37 @@
       "source": "./plugins/custom-compact",
       "description": "Automatically save session memories before context compaction",
       "version": "1.0.3",
-      "tags": ["productivity", "memory", "automation"]
+      "tags": [
+        "productivity",
+        "memory",
+        "automation"
+      ]
     },
     {
       "name": "memory-stalker",
       "source": "./plugins/memory-stalker",
       "description": "记忆追猎者 - 智能压缩、可溯源存储、接续对话。让记忆无所遁形。",
       "version": "1.0.3",
-      "tags": ["productivity", "memory", "automation", "resume", "context"]
+      "tags": [
+        "productivity",
+        "memory",
+        "automation",
+        "resume",
+        "context"
+      ]
     },
     {
       "name": "tulei-pm-master",
       "source": "./plugins/tulei-pm-master",
-      "description": "图雷产品经理大师 - 专业的产品经理工具集，包含应用分析、竞品分析、商业模式规划、PRD撰写、产品评审、评论回复等核心能力。",
+      "description": "涂磊产品经理大师 - 专业的产品经理工具集，包含应用分析、竞品分析、商业模式规划、PRD撰写、产品评审、评论回复等核心能力。",
       "version": "1.0.0",
-      "tags": ["product-manager", "prd", "competitor-analysis", "business-model", "productivity"]
+      "tags": [
+        "product-manager",
+        "prd",
+        "competitor-analysis",
+        "business-model",
+        "productivity"
+      ]
     }
   ]
 }
