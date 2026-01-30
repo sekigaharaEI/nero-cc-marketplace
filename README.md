@@ -68,8 +68,8 @@ export ANTHROPIC_API_KEY="your-api-key"
 
 **使用:**
 ```bash
-/memories_nero  # 浏览和选择记忆文件
-/resume_nero    # 基于记忆文件接续对话
+/memories  # 浏览和选择记忆文件
+/resume    # 基于记忆文件接续对话
 ```
 
 [查看详细文档](./plugins/memory-stalker/README.md)
