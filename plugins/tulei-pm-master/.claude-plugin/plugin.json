@@ -1,9 +1,9 @@
 {
   "name": "tulei-pm-master",
-  "description": "图雷产品经理大师 - 专业的产品经理工具集，包含应用分析、竞品分析、商业模式规划、PRD撰写、产品评审、评论回复等核心能力。",
+  "description": "涂磊产品经理大师 - 专业的产品经理工具集，包含应用分析、竞品分析、商业模式规划、PRD撰写、产品评审、评论回复等核心能力。",
   "version": "1.0.0",
   "author": {
-    "name": "Tulei"
+    "name": "涂磊"
   },
   "license": "MIT",
   "repository": "https://github.com/sekigaharaEI/nero-cc-marketplace",
