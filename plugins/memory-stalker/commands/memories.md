@@ -2,9 +2,9 @@
 description: 交互式浏览和选择记忆文件 - Memory Stalker 记忆追猎者
 ---
 
-<memories_nero>
+<memories>
 
-# Memories Nero - 记忆浏览器
+# Memories - 记忆浏览器
 
 列出所有可用的记忆文件，让用户选择要加载的记忆。
 
@@ -12,7 +12,7 @@ description: 交互式浏览和选择记忆文件 - Memory Stalker 记忆追猎�
 
 | 命令 | 说明 |
 |------|------|
-| `/memories_nero` | 列出所有记忆文件 |
+| `/memories` | 列出所有记忆文件 |
 
 ## 执行指令
 
@@ -123,4 +123,4 @@ python ${CLAUDE_PROJECT_DIR}/plugins/memory-stalker/scripts/list_memories.py "${
 - 表格中的摘要会被截断，完整内容需要读取文件
 - 任务数是从记忆文件中统计的 `- [x]` 和 `- [ ]` 格式的条目
 
-</memories_nero>
+</memories>

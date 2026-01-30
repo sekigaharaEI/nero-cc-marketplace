@@ -3,9 +3,9 @@ description: 基于记忆文件接续对话 - Memory Stalker 记忆追猎者
 argument_description: "[target] - 可选参数: latest, 日期(20260129), session ID(ff246da3)"
 ---
 
-<resume_nero>
+<resume>
 
-# Resume Nero - 接续对话
+# Resume - 接续对话
 
 根据用户指定的记忆文件恢复上下文，实现跨会话的连续性。
 
@@ -13,10 +13,10 @@ argument_description: "[target] - 可选参数: latest, 日期(20260129), sessio
 
 | 命令 | 说明 |
 |------|------|
-| `/resume_nero` | 显示最近 5 个记忆文件供选择 |
-| `/resume_nero latest` | 加载最新记忆 |
-| `/resume_nero 20260129` | 按日期匹配 |
-| `/resume_nero ff246da3` | 按 session ID 匹配 |
+| `/resume` | 显示最近 5 个记忆文件供选择 |
+| `/resume latest` | 加载最新记忆 |
+| `/resume 20260129` | 按日期匹配 |
+| `/resume ff246da3` | 按 session ID 匹配 |
 
 ## 执行指令
 
@@ -60,7 +60,7 @@ python ${CLAUDE_PROJECT_DIR}/plugins/memory-stalker/scripts/list_memories.py "${
 3. 展示内容并询问是否继续
 
 **如果没有找到记忆文件：**
-告知用户没有找到匹配的记忆文件，并建议使用 `/memories_nero` 查看所有可用记忆。
+告知用户没有找到匹配的记忆文件，并建议使用 `/memories` 查看所有可用记忆。
 
 ### 步骤 4: 展示记忆内容
 
@@ -101,4 +101,4 @@ python ${CLAUDE_PROJECT_DIR}/plugins/memory-stalker/scripts/list_memories.py "${
 - 记忆文件是 Markdown 格式，可以直接读取和展示
 - 优先展示"最后一轮交互"和"当前任务列表"，这是最重要的上下文信息
 
-</resume_nero>
+</resume>
