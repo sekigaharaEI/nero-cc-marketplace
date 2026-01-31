@@ -1,6 +1,6 @@
 # Nero's Claude Code Marketplace
 
-个人 Claude Code 插件市场，用于存放和分发自己开发的各种 Claude Code 插件。
+个人的 Claude Code 插件市场，用于存放和分发自己开发的各种 Claude Code 插件。
 
 ## 快速开始
 
@@ -24,11 +24,11 @@
 
 ## 可用插件
 
-| 插件名称 | 版本 | 描述 |
-|---------|------|------|
-| [custom-compact](./plugins/custom-compact/) | 1.0.3 | 在上下文压缩前自动保存会话记忆 |
-| [memory-stalker](./plugins/memory-stalker/) | 1.0.3 | 记忆追猎者 - 智能压缩、可溯源存储、接续对话 |
-| [tulei-pm-master](./plugins/tulei-pm-master/) | 1.0.1 | 涂磊产品经理大师 - 专业的产品经理工具集 |
+| 插件名称                                      | 版本  | 描述                                        |
+| --------------------------------------------- | ----- | ------------------------------------------- |
+| [custom-compact](./plugins/custom-compact/)   | 1.0.3 | 在上下文压缩前自动保存会话记忆              |
+| [memory-stalker](./plugins/memory-stalker/)   | 1.0.3 | 记忆追猎者 - 智能压缩、可溯源存储、接续对话 |
+| [tulei-pm-master](./plugins/tulei-pm-master/) | 1.0.1 | 涂磊产品经理大师 - 专业的产品经理工具集     |
 
 ## 插件详情
 
@@ -37,12 +37,14 @@
 在 Claude Code 上下文压缩（PreCompact）前，自动将当前会话的关键信息提取并保存为 Markdown 文件。
 
 **功能特性:**
+
 - 自动触发，无需手动操作
 - 智能提取任务摘要、代码变更、用户偏好、关键决策
 - 结构化 Markdown 输出
 - 持久化存储在项目目录
 
 **安装:**
+
 ```bash
 /plugin install custom-compact@nero-cc-marketplace
 pip install anthropic>=0.18.0
@@ -56,17 +58,20 @@ export ANTHROPIC_API_KEY="your-api-key"
 记忆追猎者 - 让记忆无所遁形。智能压缩会话记忆，支持可溯源存储和接续对话。
 
 **功能特性:**
+
 - 🎯 智能记忆压缩与存储
 - 📂 交互式记忆文件浏览与选择
 - 🔄 基于记忆文件接续对话
 - 📝 结构化 Markdown 输出
 
 **安装:**
+
 ```bash
 /plugin install memory-stalker@nero-cc-marketplace
 ```
 
 **使用:**
+
 ```bash
 /memories  # 浏览和选择记忆文件
 /resume    # 基于记忆文件接续对话
@@ -79,6 +84,7 @@ export ANTHROPIC_API_KEY="your-api-key"
 涂磊产品经理大师 - 专业的产品经理工具集，以涂磊式犀利风格提供产品管理全流程支持。
 
 **功能特性:**
+
 - 📱 竞品分析：根据 APP 截图反向分析产品功能、商业模式及资源投入
 - 📋 PRD 撰写：编写高质量的产品需求文档
 - 💼 商业模式规划：生成针对总经理汇报的新项目商业模式规划方案
@@ -87,11 +93,13 @@ export ANTHROPIC_API_KEY="your-api-key"
 - 📦 会话存档与恢复：支持工作进度的持久化存储
 
 **安装:**
+
 ```bash
 /plugin install tulei-pm-master@nero-cc-marketplace
 ```
 
 **使用:**
+
 ```bash
 /help                    # 查看所有可用命令
 /pm-analyze-competitor   # 竞品分析
