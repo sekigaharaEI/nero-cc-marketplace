@@ -68,23 +68,23 @@ pip install anthropic>=0.18.0
 
 ```bash
 # 显示最近的记忆文件供选择
-/resume_nero
+/resume
 
 # 加载最新的记忆
-/resume_nero latest
+/resume latest
 
 # 按日期加载
-/resume_nero 20260129
+/resume 20260129
 
 # 按 session ID 加载
-/resume_nero ff246da3
+/resume ff246da3
 ```
 
 ### 浏览记忆
 
 ```bash
 # 列出所有记忆文件
-/memories_nero
+/memories
 ```
 
 ## 记忆文件格式
@@ -144,8 +144,8 @@ Memory Stalker 是 custom-compact 的完全升级版，包含其所有功能并�
 | 可溯源存储 | ✅ | ✅ |
 | 保留最后一轮交互 | ❌ | ✅ |
 | 保留任务列表 | ❌ | ✅ |
-| /resume_nero 接续对话 | ❌ | ✅ |
-| /memories_nero 记忆浏览 | ❌ | ✅ |
+| /resume 接续对话 | ❌ | ✅ |
+| /memories 记忆浏览 | ❌ | ✅ |
 
 建议只启用其中一个插件，避免重复保存记忆。
 
@@ -158,8 +158,8 @@ plugins/memory-stalker/
 ├── hooks/
 │   └── hooks.json            # PreCompact Hook 配置
 ├── skills/
-│   ├── resume_nero.md        # /resume_nero 技能
-│   └── memories_nero.md      # /memories_nero 技能
+│   ├── resume.md        # /resume 技能
+│   └── memories.md      # /memories 技能
 ├── scripts/
 │   ├── save_memory.py        # 记忆保存脚本
 │   ├── list_memories.py      # 记忆列表脚本
