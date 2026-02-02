@@ -32,15 +32,17 @@
       ]
     },
     {
-      "name": "tulei-pm-master",
-      "source": "./plugins/tulei-pm-master",
-      "description": "涂磊产品经理大师 - 专业的产品经理工具集，包含应用分析、竞品分析、商业模式规划、PRD撰写、产品评审、评论回复等核心能力。",
-      "version": "1.0.1",
+      "name": "tt-pm-master",
+      "source": "./plugins/tt-pm-master",
+      "description": "Teacher Tui产品经理大师 - 专业的产品经理工具集，包含应用分析、竞品分析、商业模式规划、PRD撰写、产品评审、NotebookLM集成、文档转幻灯片等核心能力。",
+      "version": "1.0.2",
       "tags": [
         "product-manager",
         "prd",
         "competitor-analysis",
         "business-model",
+        "notebooklm",
+        "slides",
         "productivity"
       ]
     }
