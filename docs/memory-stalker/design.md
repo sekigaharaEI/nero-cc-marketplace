@@ -35,8 +35,8 @@ plugins/memory-stalker/
 ├── hooks/
 │   └── hooks.json                  # Hook 配置 (PreCompact)
 ├── skills/
-│   ├── resume_nero.md              # /resume_nero 技能定义
-│   └── memories_nero.md            # /memories_nero 技能定义
+│   ├── resume.md              # /resume 技能定义
+│   └── memories.md            # /memories 技能定义
 ├── scripts/
 │   ├── save_memory.py              # PreCompact Hook 主脚本 (增强版)
 │   ├── list_memories.py            # 列出记忆文件
@@ -391,13 +391,13 @@ def get_memories_dir(project_path: str) -> Path:
 
 ## 5. Skill 定义
 
-### 5.1 /resume_nero - 接续对话
+### 5.1 /resume - 接续对话
 
-**文件: skills/resume_nero.md**
+**文件: skills/resume.md**
 
 ```markdown
 ---
-name: resume_nero
+name: resume
 description: 基于记忆文件接续对话 - Memory Stalker
 arguments:
   - name: target
@@ -405,7 +405,7 @@ arguments:
     required: false
 ---
 
-# Resume Nero 技能
+# Resume 技能
 
 根据用户指定的记忆文件恢复上下文，实现跨会话的连续性。
 
@@ -413,10 +413,10 @@ arguments:
 
 | 命令 | 说明 |
 |------|------|
-| `/resume_nero` | 显示最近 5 个记忆文件供选择 |
-| `/resume_nero latest` | 加载最新记忆 |
-| `/resume_nero 20260129` | 按日期匹配 |
-| `/resume_nero ff246da3` | 按 session ID 匹配 |
+| `/resume` | 显示最近 5 个记忆文件供选择 |
+| `/resume latest` | 加载最新记忆 |
+| `/resume 20260129` | 按日期匹配 |
+| `/resume ff246da3` | 按 session ID 匹配 |
 
 ## 执行逻辑
 
@@ -436,17 +436,17 @@ arguments:
 - 询问是否继续未完成的任务
 ```
 
-### 5.2 /memories_nero - 记忆浏览
+### 5.2 /memories - 记忆浏览
 
-**文件: skills/memories_nero.md**
+**文件: skills/memories.md**
 
 ```markdown
 ---
-name: memories_nero
+name: memories
 description: 交互式浏览和选择记忆文件 - Memory Stalker
 ---
 
-# Memories Nero 技能
+# Memories 技能
 
 列出所有可用的记忆文件，让用户选择要加载的记忆。
 
@@ -454,7 +454,7 @@ description: 交互式浏览和选择记忆文件 - Memory Stalker
 
 | 命令 | 说明 |
 |------|------|
-| `/memories_nero` | 列出所有记忆文件 |
+| `/memories` | 列出所有记忆文件 |
 
 ## 执行逻辑
 
@@ -591,8 +591,8 @@ description: 交互式浏览和选择记忆文件 - Memory Stalker
 | **Phase 1** | transcript_parser.py | 无 | 待开发 |
 | **Phase 2** | save_memory.py (增强版) | Phase 1 | 待开发 |
 | **Phase 3** | list_memories.py | 无 | 待开发 |
-| **Phase 4** | /resume_nero Skill | Phase 3 | 待开发 |
-| **Phase 5** | /memories_nero Skill | Phase 3, 4 | 待开发 |
+| **Phase 4** | /resume Skill | Phase 3 | 待开发 |
+| **Phase 5** | /memories Skill | Phase 3, 4 | 待开发 |
 | **Phase 6** | 测试和文档 | 全部 | 待开发 |
 
 ## 10. 依赖项
@@ -621,8 +621,8 @@ Memory-Stalker 是 custom-compact 的**完全升级版**，包含其所有功能
 | 可溯源存储 | ✅ | ✅ |
 | 保留最后一轮交互 | ❌ | ✅ |
 | 保留任务列表 | ❌ | ✅ |
-| /resume_nero 接续对话 | ❌ | ✅ |
-| /memories_nero 记忆浏览 | ❌ | ✅ |
+| /resume 接续对话 | ❌ | ✅ |
+| /memories 记忆浏览 | ❌ | ✅ |
 
 **迁移建议：**
 - 保留 custom-compact 作为历史版本和简化版选择
