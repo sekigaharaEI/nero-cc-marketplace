@@ -101,10 +101,11 @@ Every plugin must follow these documentation requirements:
 
 When updating a plugin version, **ALL four files** must be updated synchronously:
 
-1. `plugins/{plugin-name}/.claude-plugin/plugin.json` - Update `"version"` field
-2. `plugins/{plugin-name}/README.md` - Update version references if any
-3. `README.md` (root) - Update version in "可用插件" table
-4. `.claude-plugin/marketplace.json` - Update `"version"` field in plugins array
+1. `plugins/{plugin-name}/.claude-plugin/plugin.json` - U
+2. pdate `"version"` field
+3. `plugins/{plugin-name}/README.md` - Update version references if any
+4. `README.md` (root) - Update version in "可用插件" table
+5. `.claude-plugin/marketplace.json` - Update `"version"` field in plugins array
 
 **Critical**: Version numbers must match exactly across all four files to avoid inconsistencies.
 

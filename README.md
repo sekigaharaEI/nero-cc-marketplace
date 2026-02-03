@@ -48,12 +48,21 @@
 /plugin install memory-stalker@nero-cc-marketplace
 ```
 
-**使用:**
+**命令:**
 
-```bash
-/memories  # 浏览和选择记忆文件
-/resume    # 基于记忆文件接续对话
-```
+| 命令 | 说明 |
+|------|------|
+| `/init` | 初始化向导，检测环境并完成配置 |
+| `/memories` | 列出所有记忆文件，交互式浏览和选择 |
+| `/resume [参数]` | 基于记忆文件接续对话，支持 `latest`、日期、session ID |
+| `/edit-memory-prompt` | 编辑 AI 摘要提示词，自定义摘要格式 |
+| `/commit` | 提交命令 |
+
+**钩子:**
+
+| 钩子 | 说明 |
+|------|------|
+| PreCompact Hook | 上下文压缩前自动保存记忆，手动执行 `/compact` 或自动 compact 时触发 |
 
 [查看详细文档](./plugins/memory-stalker/README.md)
 
