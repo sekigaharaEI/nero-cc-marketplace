@@ -1,6 +1,63 @@
-看看我们的开发设计还有哪里遗漏的，一些情况的实现落地方式我们也要在开发设计这一步做好：
-1、Probe模式主要在哪里监控子Probe，怎么看执行状态、日志在哪看？怎么纠偏？
-2、Cron的执行引擎选型，怎么在后台执行（优先考虑linux和weindows）
-3、系统提示怎么给到？
-4、人工纠偏怎么介入
-5、其他各种落地中可能存在的问题
+Cron 执行引擎 - 遗漏点分析
+当前已有设计
+文档中已经覆盖了：
+
+平台检测（Linux/Windows/macOS）
+Linux: Crontab + Systemd Timer
+Windows: Task Scheduler
+统一安装接口 SchedulerManager
+后台执行机制 archon_main.py
+遗漏的问题
+1. Cron 模式的任务执行流程不完整
+问题：Probe 模式有完整的 archon_check.py，但 Cron 模式的执行逻辑缺失。
+
+Cron 模式应该是：
+
+定时启动一个临时 Claude Code CLI
+执行 workflow 中的任务
+分析结果并通知
+需要补充：
+
+cron_executor.py - Cron 任务执行器
+Cron 任务的 workflow 如何定义和执行？
+临时 Claude Code CLI 如何启动和管理？
+2. Cron 任务的 workflow 格式未定义
+问题：dev_design.md 中提到 workflow/workflow.md，但具体格式和执行方式未明确。
+
+需要补充：
+
+workflow.md 的具体格式规范
+如何将 workflow 转换为 Claude Code CLI 的提示词？
+多步骤 workflow 如何串联执行？
+3. Cron 任务的结果分析机制
+问题：Cron 模式执行后，如何判断"发现问题"？
+
+需要补充：
+
+结果分析的判断标准
+什么情况下触发通知？
+结果如何记录和存储？
+4. 定时器的动态管理
+问题：当前设计是全局定时器，但每个任务可能有不同的执行间隔。
+
+需要补充：
+
+如何支持不同任务的不同执行间隔？
+方案 A：每个任务一个 cron 条目
+方案 B：全局定时器 + 任务内部判断是否到执行时间
+5. 环境变量和工作目录
+问题：Cron 执行环境与用户 shell 环境不同。
+
+需要补充：
+
+如何确保 cron 执行时能找到 claude 命令？
+PATH 环境变量如何设置？
+工作目录如何指定？
+6. 执行超时处理
+问题：Cron 任务如果执行时间过长怎么办？
+
+需要补充：
+
+超时机制设计
+超时后如何处理（终止？通知？）
+您想让我针对这些遗漏点补充详细的设计方案吗？或者您有其他想法需要讨论？
