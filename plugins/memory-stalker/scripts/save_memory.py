@@ -15,7 +15,15 @@ Compatible with Python 3.8+
 import json
 import os
 import sys
+import io
 import logging
+
+# Windows 中文路径支持：强制 stdin 使用 UTF-8 编码
+# Claude Code 传入的 JSON 数据是 UTF-8 编码的，但 Windows 默认使用 GBK
+if sys.platform == 'win32':
+    sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8')
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Optional
