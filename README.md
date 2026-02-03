@@ -26,32 +26,10 @@
 
 | 插件名称                                   | 版本  | 描述                                        |
 | ------------------------------------------ | ----- | ------------------------------------------- |
-| [custom-compact](./plugins/custom-compact/)   | 1.0.3 | 在上下文压缩前自动保存会话记忆              |
 | [memory-stalker](./plugins/memory-stalker/)   | 1.0.4 | 记忆追猎者 - 智能压缩、可溯源存储、接续对话 |
 | [tt-pm-master](./plugins/tt-pm-master/) | 1.0.2 | Teacher Tui产品经理大师 - 专业的产品经理工具集     |
 
 ## 插件详情
-
-### custom-compact
-
-在 Claude Code 上下文压缩（PreCompact）前，自动将当前会话的关键信息提取并保存为 Markdown 文件。
-
-**功能特性:**
-
-- 自动触发，无需手动操作
-- 智能提取任务摘要、代码变更、用户偏好、关键决策
-- 结构化 Markdown 输出
-- 持久化存储在项目目录
-
-**安装:**
-
-```bash
-/plugin install custom-compact@nero-cc-marketplace
-pip install anthropic>=0.18.0
-export ANTHROPIC_API_KEY="your-api-key"
-```
-
-[查看详细文档](./plugins/custom-compact/README.md)
 
 ### memory-stalker
 
@@ -123,12 +101,6 @@ nero-cc-marketplace/
 ├── .claude-plugin/
 │   └── marketplace.json        # Marketplace 清单
 ├── plugins/
-│   ├── custom-compact/         # Custom Compact 插件
-│   │   ├── .claude-plugin/
-│   │   │   └── plugin.json
-│   │   ├── hooks/
-│   │   ├── scripts/
-│   │   └── README.md
 │   ├── memory-stalker/         # Memory Stalker 插件
 │   │   ├── .claude-plugin/
 │   │   │   └── plugin.json

@@ -8,17 +8,6 @@
   },
   "plugins": [
     {
-      "name": "custom-compact",
-      "source": "./plugins/custom-compact",
-      "description": "Automatically save session memories before context compaction",
-      "version": "1.0.3",
-      "tags": [
-        "productivity",
-        "memory",
-        "automation"
-      ]
-    },
-    {
       "name": "memory-stalker",
       "source": "./plugins/memory-stalker",
       "description": "记忆追猎者 - 智能压缩、可溯源存储、接续对话。让记忆无所遁形。",
