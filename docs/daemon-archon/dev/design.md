@@ -79,16 +79,17 @@ daemon-archon 是一个 Claude Code 插件，提供两种工作模式：
 
 ## 三、架构方案
 
-### 确定方案：方案 B（定时调用）
+### 确定方案：FastAPI 内嵌服务
 
-- 系统定时器（cron/systemd/Task Scheduler）定时唤醒 Archon
-- 每次唤醒时从文件读取状态、执行检查、然后退出
-- 跨平台支持：Linux (Ubuntu) + Windows
+- 插件内嵌轻量级 FastAPI 服务，使用 APScheduler 实现定时调度
+- 服务常驻运行，通过 subprocess 调用 Claude CLI 执行任务
+- 跨平台支持：Linux (Ubuntu) + Windows + macOS
 
 **理由**：
-1. Claude Code 本身不支持定时器，无法自己"每 5 分钟检查一次"
-2. 方案 B 利用系统定时器，可靠性有保证
-3. 通过良好的状态持久化设计，可以弥补"无连续记忆"的缺点
+1. 不依赖系统定时器（cron/systemd/Task Scheduler），代码逻辑统一
+2. 跨平台一致，易于调试和测试
+3. 插件内嵌，安装部署简单，用户通过命令启停服务
+4. 服务通过 subprocess 调用 Claude CLI，权限与系统定时器方案相同
 
 ---
 
@@ -127,14 +128,22 @@ daemon-archon 是一个 Claude Code 插件，提供两种工作模式：
 ## 五、命令体系
 
 ```
+# 服务管理
+/archon-start                      # 启动 Archon 后台服务
+/archon-stop                       # 停止 Archon 后台服务
+/archon-status                     # 查看服务和任务状态
+
+# Probe 模式
 /start-probe <task_description>    # 启动 Probe 模式任务
-/start-cron <task_description>     # 创建并启动 Cron 模式任务
 /stop-probe <task_id>              # 停止 Probe 任务
+
+# Cron 模式
+/start-cron <task_description>     # 创建并启动 Cron 模式任务
 /stop-cron <task_id>               # 停止 Cron 定时任务
+
+# 通用
 /list-tasks                        # 列出所有任务（两种模式）
 /check-task <task_id>              # 手动检查任务状态
-/setup-daemon                      # 配置系统定时器
-/stop-daemon                       # 停止系统定时器
 ```
 
 ---
@@ -146,7 +155,7 @@ daemon-archon 是一个 Claude Code 插件，提供两种工作模式：
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                      用户交互层                              │
-│  /start-probe  /start-workflow  /stop-*  /list-tasks       │
+│  /archon-start  /archon-stop  /start-probe  /start-cron    │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -154,91 +163,105 @@ daemon-archon 是一个 Claude Code 插件，提供两种工作模式：
 │                    daemon-archon 插件                        │
 ├─────────────────────────────────────────────────────────────┤
 │  Commands (用户命令)          │  Skills (AI 技能)            │
-│  ├── start-probe.md          │  ├── probe-monitor/SKILL.md │
-│  ├── start-cron.md           │  └── cron-exec/SKILL.md     │
-│  ├── stop-probe.md           │                              │
-│  ├── stop-cron.md            │                              │
+│  ├── archon-start.md         │  ├── probe-monitor/SKILL.md │
+│  ├── archon-stop.md          │  └── cron-exec/SKILL.md     │
+│  ├── archon-status.md        │                              │
+│  ├── start-probe.md          │                              │
+│  ├── start-cron.md           │                              │
 │  └── list-tasks.md           │                              │
 ├─────────────────────────────────────────────────────────────┤
-│                      Scripts (核心逻辑)                      │
-│  ├── archon_main.py          # 主入口（定时器调用）          │
-│  ├── probe_manager.py        # Probe 模式管理               │
-│  ├── cron_manager.py         # Cron 模式管理                │
-│  ├── transcript_analyzer.py  # 对话记录分析                 │
-│  ├── problem_evaluator.py    # 问题严重程度评估             │
-│  ├── correction_engine.py    # 纠偏引擎（Probe 模式）       │
-│  ├── notification_service.py # 系统通知                     │
-│  └── state_store.py          # 状态持久化                   │
+│                   Scripts/Server (核心服务)                  │
+│  └── server/                                                │
+│      ├── main.py             # FastAPI 入口                 │
+│      ├── scheduler.py        # APScheduler 定时调度         │
+│      ├── probe_executor.py   # Probe 模式执行               │
+│      ├── cron_executor.py    # Cron 模式执行                │
+│      ├── analyzer.py         # 结果分析                     │
+│      ├── notifier.py         # 系统通知                     │
+│      └── state_store.py      # 状态持久化                   │
 └─────────────────────────────────────────────────────────────┘
                               │
           ┌───────────────────┼───────────────────┐
           ▼                   ▼                   ▼
 ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-│   系统定时器     │  │   状态存储       │  │  Claude Code    │
-│  (cron/systemd) │  │ ~/.claude/      │  │  (Probe/临时)   │
-│                 │  │ daemon-archon/  │  │                 │
+│  FastAPI 服务    │  │   状态存储       │  │  Claude Code    │
+│  (APScheduler)  │  │ ~/.claude/      │  │  (Probe/临时)   │
+│  localhost:port │  │ daemon-archon/  │  │                 │
 └─────────────────┘  └─────────────────┘  └─────────────────┘
 ```
 
 ### 6.2 Probe 模式流程
 
 ```
-1. 用户启动 Probe 任务
+1. 用户启动 Archon 服务（如未启动）
+   /archon-start
+         │
+         ▼
+2. 用户启动 Probe 任务
    /start-probe "重构 src/legacy 目录"
          │
          ▼
-2. 创建 Probe 进程
+3. 创建 Probe 进程
    claude -p "重构任务..." --session-id xxx
          │
          ▼
-3. 保存任务配置
+4. 保存任务配置
    ~/.claude/daemon-archon/probes/probe-001.json
          │
          ▼
-4. 系统定时器每 x 分钟触发
-   cron/systemd → archon_main.py
+5. APScheduler 定时触发检查
+   scheduler.py → probe_executor.py
          │
          ▼
-5. Archon 分析 Probe 状态
+6. Archon 分析 Probe 状态
    ├── 读取 Probe 的 transcript.jsonl
    ├── 检查输出文件
    └── AI 智能分析
          │
          ▼
-6. 问题评估
+7. 问题评估
    ├── 简单/中等 → 自动纠偏
    └── 严重 → 通知用户
          │
          ▼
-7. 执行纠偏（如需要）
+8. 执行纠偏（如需要）
    claude --resume xxx -p "纠偏指令..."
 ```
 
 ### 6.3 Cron 模式流程
 
 ```
-1. 用户创建 Cron 任务
+1. 用户启动 Archon 服务（如未启动）
+   /archon-start
+         │
+         ▼
+2. 用户创建 Cron 任务
    /start-cron "每小时检查服务器日志，发现错误就通知我"
          │
          ▼
-2. 生成 cron 任务文件
-   ~/.claude/daemon-archon/crons/cron-001.md
-   (包含：任务描述、检查步骤、通知条件)
+3. 生成 cron 任务文件
+   ~/.claude/daemon-archon/crons/cron-001/
+   (包含：config.json, task.md, workflow/workflow.md)
          │
          ▼
-3. 系统定时器每 x 分钟触发
-   cron/systemd → archon_main.py
+4. APScheduler 定时触发执行
+   scheduler.py → cron_executor.py
          │
          ▼
-4. 启动临时 Claude Code CLI
-   claude -p "$(cat cron-001.md)" --no-session-persistence
+5. 启动临时 Claude Code CLI
+   claude -p "$(构建的提示词)" --output-format json
          │
          ▼
-5. 执行 cron 任务中的任务
+6. 执行 workflow 中的任务
    (检查日志、分析状态等)
          │
          ▼
-6. 分析执行结果
+7. 分析执行结果
+   ├── 规则初筛
+   └── 可疑情况 → Claude 二次分析
+         │
+         ▼
+8. 结果处理
    ├── 正常 → 记录日志
    └── 发现问题 → 发送系统通知
 ```
@@ -335,27 +358,26 @@ daemon-archon 是一个 Claude Code 插件，提供两种工作模式：
 ### Phase 1: 基础框架
 1. 创建插件目录结构
 2. 编写 plugin.json
-3. 实现 state_store.py
-4. 实现 notification_service.py
+3. 实现 state_store.py（状态持久化）
+4. 实现 notifier.py（系统通知）
 
-### Phase 2: Probe 模式
-5. 实现 probe_manager.py
-6. 实现 transcript_analyzer.py
-7. 实现 problem_evaluator.py
-8. 实现 correction_engine.py
-9. 编写 start-probe.md / stop-probe.md
+### Phase 2: FastAPI 服务
+5. 实现 main.py（FastAPI 入口）
+6. 实现 scheduler.py（APScheduler 调度）
+7. 编写 archon-start.md / archon-stop.md / archon-status.md
 
-### Phase 3: Cron 模式
-10. 实现 cron_manager.py
-11. 设计 cron 任务文件格式
-12. 编写 start-cron.md / stop-cron.md
+### Phase 3: Probe 模式
+8. 实现 probe_executor.py
+9. 实现 transcript 分析逻辑
+10. 实现纠偏引擎
+11. 编写 start-probe.md / stop-probe.md
 
-### Phase 4: 主入口与定时器
-13. 实现 archon_main.py（统一入口）
-14. 创建 systemd/cron/Windows 定时器模板
-15. 编写 setup-daemon.md / stop-daemon.md
+### Phase 4: Cron 模式
+12. 实现 cron_executor.py
+13. 实现 analyzer.py（结果分析）
+14. 编写 start-cron.md / stop-cron.md
 
 ### Phase 5: 通用功能
-16. 编写 list-tasks.md
-17. 编写 check-task.md
-18. 完善日志和错误处理
+15. 编写 list-tasks.md
+16. 编写 check-task.md（手动检查）
+17. 完善日志和错误处理

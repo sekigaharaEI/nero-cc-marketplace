@@ -395,3 +395,406 @@
   - 与 config.json 中的 `criteria` 配合使用
 - **日期**：2026-02-02
 
+### 决策 #7：Cron 模式执行流程
+
+- **问题**：Cron 模式的任务执行流程如何设计？
+- **结论**：
+
+#### 执行流程
+
+```
+定时器触发
+    │
+    ▼
+cron_executor.py
+    │
+    ├─→ 1. 检查 task.lock（防并发）
+    │
+    ├─→ 2. 读取 task.md + workflow/workflow.md
+    │
+    ├─→ 3. 构建提示词
+    │
+    ├─→ 4. 启动临时 Claude Code CLI（-p 单次执行）
+    │      claude -p "{prompt}" --output-format json
+    │
+    ├─→ 5. 等待执行完成（带超时）
+    │
+    ├─→ 6. 解析执行结果
+    │
+    ├─→ 7. 调用 result_analyzer.py 分析结果
+    │
+    └─→ 8. 根据分析结果决定是否通知
+```
+
+#### CLI 调用方式
+
+采用 `-p` 单次执行模式：
+- 简单、无状态、执行完即退出
+- 无需管理 session
+- 如需多轮对话场景，应使用 Probe 模式
+
+- **理由**：
+  - Cron 模式定位是定时执行简单任务，单次执行足够
+  - 保持简单，降低复杂度
+  - 与 Probe 模式形成明确分工
+- **日期**：2026-02-03
+
+### 决策 #8：Workflow 格式规范
+
+- **问题**：workflow/workflow.md 的具体格式是什么？条件逻辑如何处理？
+- **结论**：
+
+#### 文件格式
+
+```markdown
+# Workflow: {任务名称}
+
+## 元信息
+- 版本: 1.0
+- 预计耗时: 5 分钟
+- 失败策略: stop_on_error | continue_on_error
+
+## 执行步骤
+
+### Step 1: {步骤名称}
+- 动作: {具体要做什么}
+- 成功条件: {什么情况算成功}
+- 失败处理: {失败时怎么办}
+
+### Step 2: {步骤名称}
+- 动作: {具体要做什么}
+- 成功条件: {什么情况算成功}
+- 关注指标:
+  - {指标} > {阈值} → {级别}
+
+## 结果汇总要求
+
+请按以下格式输出结果：
+
+\`\`\`json
+{
+  "status": "success | warning | error",
+  "summary": "一句话总结",
+  "findings": [
+    {"level": "info|warning|error", "message": "具体发现"}
+  ],
+  "metrics": {
+    "key": value
+  }
+}
+\`\`\`
+```
+
+#### 条件逻辑处理
+
+采用**自然语言描述**，交给 Claude 判断：
+- 不设计复杂的 DSL 语法
+- 在步骤描述中用自然语言说明条件
+- Claude 根据上下文自行理解和执行
+
+**示例**：
+```markdown
+### Step 3: 决定是否深度扫描
+- 动作: 如果 Step 2 发现的错误数量超过 10 个，执行深度日志分析；否则跳过此步骤
+```
+
+- **理由**：
+  - Markdown 格式人类可读，非技术人员也能理解
+  - 自然语言描述条件逻辑，避免设计复杂 DSL
+  - 结构化 JSON 输出便于程序解析
+  - 充分利用 Claude 的理解能力
+- **日期**：2026-02-03
+
+### 决策 #9：Cron 结果分析机制
+
+- **问题**：Cron 模式执行后，如何判断"发现问题"？何时触发通知？
+- **结论**：
+
+#### 混合分析方案
+
+采用**规则初筛 + Claude 二次分析**的混合方案：
+
+```
+Claude CLI 输出
+    │
+    ▼
+result_analyzer.py
+    │
+    ├─→ 1. 解析 JSON 输出
+    │      - 提取 status 字段
+    │      - 提取 findings 列表
+    │      - 提取 metrics 数据
+    │
+    ├─→ 2. 规则初筛
+    │      - status == "error" → 确定需要通知
+    │      - status == "success" 且无异常指标 → 确定不需要通知
+    │      - status == "warning" 或指标接近阈值 → 可疑，需二次分析
+    │
+    ├─→ 3. 可疑情况交给 Claude 二次分析
+    │      - 构建分析提示词，包含原始输出和上下文
+    │      - Claude 判断是否真的需要通知
+    │      - 返回分析结论
+    │
+    └─→ 4. 生成最终结论并记录
+```
+
+#### 通知规则配置
+
+在 `config.json` 中定义：
+
+```json
+{
+  "notification_rules": {
+    "notify_on_status": ["error"],
+    "suspicious_status": ["warning"],
+    "metric_thresholds": {
+      "error_count": { "warn": 10, "error": 50 },
+      "disk_usage_percent": { "warn": 80, "error": 95 }
+    },
+    "enable_claude_analysis": true
+  }
+}
+```
+
+#### 分析结果分类
+
+| 初筛结果 | 处理方式 |
+|----------|----------|
+| 确定异常 | 直接通知 |
+| 确定正常 | 不通知，仅记录日志 |
+| 可疑情况 | 交给 Claude 二次分析后决定 |
+
+- **理由**：
+  - 规则初筛快速、低成本，处理明确情况
+  - Claude 二次分析处理边界情况，减少漏报/误报
+  - 可配置是否启用 Claude 分析，平衡成本和智能
+- **日期**：2026-02-03
+
+### 决策 #10：架构变更 - FastAPI 事件循环
+
+- **问题**：定时调度采用系统 cron 还是代码实现？
+- **结论**：
+
+#### 变更原因
+
+不依赖系统 crontab/Task Scheduler，改用 FastAPI + APScheduler 代码实现定时调度。
+
+#### 架构方案：插件内嵌 FastAPI 服务
+
+```
+daemon-archon/（插件目录）
+├── commands/
+│   ├── archon-start.md      # 启动服务
+│   ├── archon-stop.md       # 停止服务
+│   ├── archon-status.md     # 查看状态
+│   ├── archon-create.md     # 创建任务
+│   └── archon-list.md       # 列出任务
+│
+├── hooks/                   # 可选
+│
+├── scripts/
+│   └── server/              # FastAPI 服务代码
+│       ├── main.py          # FastAPI 入口
+│       ├── scheduler.py     # APScheduler 调度
+│       ├── executor.py      # 任务执行（subprocess 调用 claude）
+│       ├── analyzer.py      # 结果分析
+│       └── requirements.txt
+│
+├── settings.json
+└── README.md
+```
+
+#### 执行流程
+
+```
+用户执行 /archon-start
+    │
+    ▼
+Claude Code 启动 scripts/server/main.py
+    │
+    ▼
+FastAPI 服务运行（用户权限）
+    │
+    ├─→ APScheduler 定时触发
+    │
+    └─→ subprocess.run(['claude', '-p', prompt])
+            │
+            └─→ Claude CLI 以用户权限执行（完整权限）
+```
+
+#### 权限分析
+
+服务通过 subprocess 调用 Claude CLI，权限链完整：
+- 服务以用户权限运行
+- Claude CLI 拥有完整权限（读写文件、执行命令）
+- 与系统 cron 方案权限相同，不会受限
+
+- **理由**：
+  - 跨平台一致，不依赖系统定时器
+  - 代码实现，易于调试和测试
+  - 插件内嵌，安装部署简单
+  - 服务不会特别复杂，内嵌合适
+- **日期**：2026-02-03
+
+### 决策 #11：任务持久化方案
+
+- **问题**：APScheduler 是否需要 SQLite 持久化？
+- **结论**：
+
+#### 采用文件持久化
+
+不使用 SQLite，任务配置存储在 JSON 文件中：
+- 每个任务一个目录，包含 `config.json`
+- 服务启动时扫描 `~/.claude/daemon-archon/` 恢复所有 `active` 任务
+- APScheduler 使用内存 JobStore
+
+#### 服务启动恢复逻辑
+
+```python
+async def startup_event():
+    """服务启动时恢复所有活跃任务"""
+    scheduler = ArchonScheduler()
+
+    # 扫描所有任务目录
+    for task_dir in scan_task_directories():
+        config = load_config(task_dir)
+
+        if config["state"]["status"] == "active":
+            scheduler.add_task(
+                task_id=config["task_id"],
+                interval_minutes=config["schedule"]["check_interval_minutes"],
+                mode=config["mode"]
+            )
+
+    scheduler.start()
+```
+
+- **理由**：
+  - 简单、易调试、用户可直接查看/编辑配置文件
+  - 对于任务量不大的场景，文件持久化足够
+  - 避免引入 SQLite 增加复杂度
+- **日期**：2026-02-03
+
+### 决策 #12：环境检查命令
+
+- **问题**：如何帮助用户检查环境是否满足要求？
+- **结论**：
+
+#### 新增 /archon-init 命令
+
+检查环境并输出对照表：
+
+```
+检查项                          状态   详情
+------------------------------------------------------------
+Claude CLI                     ✓     claude 2.1.0
+Python 版本                    ✓     Python 3.10
+Python 包: fastapi             ✓     已安装
+Python 包: uvicorn             ✓     已安装
+Python 包: apscheduler         ✓     已安装
+Python 包: anthropic           ✗     未安装
+工作目录权限                    ✓     /home/user/.claude/daemon-archon
+```
+
+#### 检查项
+
+1. Claude CLI 是否安装及版本
+2. Python 版本（>= 3.8）
+3. 必要的 Python 包（fastapi、uvicorn、apscheduler、anthropic）
+4. 工作目录权限（~/.claude/daemon-archon）
+
+#### 修复建议
+
+对于未通过的检查项，输出具体的安装/修复指令。
+
+- **理由**：
+  - 降低用户使用门槛，快速发现环境问题
+  - 提供明确的修复指导
+  - 避免服务启动后才发现环境问题
+- **日期**：2026-02-03
+
+### 决策 #13：执行超时机制
+
+- **问题**：Probe 和 Cron 模式是否需要超时机制？
+- **结论**：
+
+#### Probe 模式：不设置超时
+
+- Probe 任务可能执行很久（如代码重构）
+- 由 Archon 定时监测状态，无需超时终止
+- 用户可手动停止：`/stop-probe <task_id>`
+
+#### Cron 模式：10 分钟超时
+
+```python
+def execute_cron(task_id: str):
+    """执行 Cron 任务"""
+    config = load_config(task_id)
+    timeout_seconds = config["execution"].get("timeout_minutes", 10) * 60
+
+    try:
+        result = subprocess.run(
+            ['claude', '-p', prompt, '--output-format', 'json'],
+            cwd=config["project_path"],
+            capture_output=True,
+            text=True,
+            timeout=timeout_seconds
+        )
+        return analyze_result(result.stdout)
+
+    except subprocess.TimeoutExpired:
+        handle_timeout(task_id, config)
+```
+
+#### 超时处理策略
+
+```python
+def handle_timeout(task_id: str, config: dict):
+    """处理超时"""
+    # 1. 记录日志
+    log_timeout(task_id)
+
+    # 2. 更新配置
+    config["execution"]["last_result"] = "timeout"
+    config["execution"]["consecutive_failures"] += 1
+    save_config(task_id, config)
+
+    # 3. 检查连续失败次数
+    max_failures = config["execution"].get("max_consecutive_failures", 3)
+
+    if config["execution"]["consecutive_failures"] >= max_failures:
+        # 达到阈值，暂停任务
+        config["state"]["status"] = "paused"
+        save_config(task_id, config)
+        scheduler.remove_task(task_id)
+
+        # 发送通知
+        notifier.send(
+            title="任务超时暂停",
+            message=f"任务 {task_id} 连续超时 {max_failures} 次，已自动暂停"
+        )
+    else:
+        # 未达到阈值，仅通知
+        notifier.send(
+            title="任务执行超时",
+            message=f"任务 {task_id} 执行超时"
+        )
+```
+
+#### 配置参数
+
+```json
+{
+  "execution": {
+    "timeout_minutes": 10,
+    "max_consecutive_failures": 3
+  }
+}
+```
+
+- **理由**：
+  - Probe 模式任务可能很长，不应超时终止
+  - Cron 模式定位是快速巡检，10 分钟超时合理
+  - 连续失败自动暂停，避免持续消耗资源
+- **日期**：2026-02-03
+
