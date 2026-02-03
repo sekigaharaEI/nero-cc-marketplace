@@ -27,7 +27,7 @@
 | 插件名称                                   | 版本  | 描述                                        |
 | ------------------------------------------ | ----- | ------------------------------------------- |
 | [custom-compact](./plugins/custom-compact/)   | 1.0.3 | 在上下文压缩前自动保存会话记忆              |
-| [memory-stalker](./plugins/memory-stalker/)   | 1.0.3 | 记忆追猎者 - 智能压缩、可溯源存储、接续对话 |
+| [memory-stalker](./plugins/memory-stalker/)   | 1.0.4 | 记忆追猎者 - 智能压缩、可溯源存储、接续对话 |
 | [tt-pm-master](./plugins/tt-pm-master/) | 1.0.2 | Teacher Tui产品经理大师 - 专业的产品经理工具集     |
 
 ## 插件详情
