@@ -2,11 +2,12 @@
   "hooks": {
     "PreCompact": [
       {
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
-            "command": "python ${CLAUDE_PLUGIN_ROOT}/scripts/save_memory.py",
-            "timeout": 60000
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/scripts/save_memory.py\"",
+            "timeout": 120000
           }
         ]
       }

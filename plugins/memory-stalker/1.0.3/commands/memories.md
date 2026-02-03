@@ -23,7 +23,7 @@ description: 交互式浏览和选择记忆文件 - Memory Stalker 记忆追猎�
 使用 Bash 工具运行以下命令获取所有记忆文件：
 
 ```bash
-python "${CLAUDE_PROJECT_DIR}/plugins/memory-stalker/scripts/list_memories.py" "${CLAUDE_PROJECT_DIR}" --json
+python ${CLAUDE_PROJECT_DIR}/plugins/memory-stalker/scripts/list_memories.py "${CLAUDE_PROJECT_DIR}" --json
 ```
 
 注意：如果插件是通过 marketplace 安装的，脚本路径可能在 `~/.claude/plugins/cache/nero-cc-marketplace/memory-stalker/*/scripts/` 下。
