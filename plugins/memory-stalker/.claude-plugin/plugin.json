@@ -1,7 +1,7 @@
 {
   "name": "memory-stalker",
   "description": "记忆追猎者 - 让记忆无所遁形，无论散落在哪里都可以捞出来。智能压缩、可溯源存储、接续对话。",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "author": {
     "name": "Nero"
   },
