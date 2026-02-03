@@ -12,18 +12,10 @@ PreCompact Hook 主脚本 - 增强版
 Compatible with Python 3.8+
 """
 
-import sys
-import io
-import os
 import json
+import os
+import sys
 import logging
-
-# Windows 中文路径支持：强制 stdin 使用 UTF-8 编码
-# Claude Code 传入的 JSON 数据是 UTF-8 编码的，但 Windows 默认使用 GBK
-if sys.platform == 'win32':
-    sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8')
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Optional
@@ -264,42 +256,7 @@ def save_memory(memory_content: str, project_path: str, session_id: str) -> Opti
     Returns:
         保存的文件路径，失败返回 None
     """
-    # Windows 编码修复：检查 project_path 是否被错误编码
-    # 如果路径包含乱码字符（UTF-8 被当作 GBK 解码），尝试修复
-    logger.info("Original project_path: %s", project_path)
-    logger.info("project_path bytes: %s", project_path.encode('utf-8'))
-
-    # 检测并修复编码问题：如果路径看起来像是 UTF-8 字节被当作 GBK 解码的结果
-    # 需要将其转换回正确的 UTF-8
-    # 例如: "AI应用平台" 的 UTF-8 字节被当作 GBK 解码后变成 "AI搴旂敤骞冲彴"
-    # 修复方法: 把乱码字符串按 GBK 编码回字节，然后用 UTF-8 解码
-    try:
-        # 检测是否包含可能的乱码字符（GBK 高位字符）
-        # 如果路径包含非 ASCII 字符，尝试修复
-        if any(ord(c) > 127 for c in project_path):
-            # 尝试将字符串按 latin-1 编码回字节（保留原始字节值），然后用 UTF-8 解码
-            # 这是因为 GBK 解码后的字符可能无法完美用 GBK 编码回去
-            try:
-                # 方法1: 尝试 GBK -> UTF-8
-                fixed_path = project_path.encode('gbk').decode('utf-8')
-                if fixed_path and fixed_path != project_path:
-                    logger.info("Fixed project_path (GBK->UTF-8): %s -> %s", project_path, fixed_path)
-                    project_path = fixed_path
-            except (UnicodeDecodeError, UnicodeEncodeError):
-                # 方法2: 尝试 latin-1 -> UTF-8（某些情况下更可靠）
-                try:
-                    fixed_path = project_path.encode('latin-1').decode('utf-8')
-                    if fixed_path and fixed_path != project_path:
-                        logger.info("Fixed project_path (latin1->UTF-8): %s -> %s", project_path, fixed_path)
-                        project_path = fixed_path
-                except (UnicodeDecodeError, UnicodeEncodeError):
-                    pass
-    except Exception as e:
-        logger.warning("Path encoding fix failed: %s", e)
-
     memories_dir = Path(project_path) / ".claude" / "memories"
-    logger.info("memories_dir: %s", memories_dir)
-
     memories_dir.mkdir(parents=True, exist_ok=True)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -323,26 +280,9 @@ def main():
     logger.info("Memory Stalker hook triggered")
 
     # Read hook input from stdin
-    # Windows 编码修复：使用保存的原始 buffer 读取字节，然后手动解码为 UTF-8
-    # 这样可以完全绕过 Windows 默认的 GBK 编码问题
     try:
-        if _ORIGINAL_STDIN_BUFFER is not None:
-            # 使用保存的原始 buffer
-            raw_bytes = _ORIGINAL_STDIN_BUFFER.read()
-            logger.info("Read %d bytes from original stdin buffer", len(raw_bytes))
-            input_text = raw_bytes.decode('utf-8')
-            hook_input = json.loads(input_text)
-        elif hasattr(sys.stdin, 'buffer'):
-            # 回退：尝试使用当前的 buffer
-            raw_bytes = sys.stdin.buffer.read()
-            logger.info("Read %d bytes from sys.stdin.buffer", len(raw_bytes))
-            input_text = raw_bytes.decode('utf-8')
-            hook_input = json.loads(input_text)
-        else:
-            # 最后回退：直接使用 json.load
-            hook_input = json.load(sys.stdin)
-            logger.info("Read from sys.stdin directly")
-    except (json.JSONDecodeError, UnicodeDecodeError) as e:
+        hook_input = json.load(sys.stdin)
+    except json.JSONDecodeError as e:
         logger.error("Failed to parse hook input: %s", e)
         # Output success to not block the compaction
         print(json.dumps({"continue": True}))

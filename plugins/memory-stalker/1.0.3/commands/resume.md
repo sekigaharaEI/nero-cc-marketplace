@@ -37,12 +37,12 @@ argument_description: "[target] - 可选参数: latest, 日期(20260129), sessio
 
 如果有 target 参数：
 ```bash
-python "${CLAUDE_PROJECT_DIR}/plugins/memory-stalker/scripts/list_memories.py" "${CLAUDE_PROJECT_DIR}" -t "<target>" --json
+python ${CLAUDE_PROJECT_DIR}/plugins/memory-stalker/scripts/list_memories.py "${CLAUDE_PROJECT_DIR}" -t "<target>" --json
 ```
 
 如果没有 target 参数（列出最近 5 个）：
 ```bash
-python "${CLAUDE_PROJECT_DIR}/plugins/memory-stalker/scripts/list_memories.py" "${CLAUDE_PROJECT_DIR}" -l 5 --json
+python ${CLAUDE_PROJECT_DIR}/plugins/memory-stalker/scripts/list_memories.py "${CLAUDE_PROJECT_DIR}" -l 5 --json
 ```
 
 注意：如果插件是通过 marketplace 安装的，脚本路径可能在 `~/.claude/plugins/cache/nero-cc-marketplace/memory-stalker/*/scripts/` 下。
