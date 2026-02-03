@@ -264,7 +264,7 @@ def get_current_todos(records: List[dict]) -> List[dict]:
     return []
 
 
-def extract_conversation_text(records: List[dict], max_chars: int = 50000) -> str:
+def extract_conversation_text(records: List[dict], max_chars: int = 80000) -> str:
     """提取对话文本（用于 AI 摘要生成）
 
     格式:
@@ -372,8 +372,8 @@ def format_last_interaction(interaction: Dict[str, str]) -> str:
     parts.append("### 助手回复")
     if assistant_msg:
         # 限制长度，避免过长
-        if len(assistant_msg) > 5000:
-            assistant_msg = assistant_msg[:5000] + "\n\n... [回复已截断] ..."
+        if len(assistant_msg) > 10000:
+            assistant_msg = assistant_msg[:10000] + "\n\n... [回复已截断] ..."
         parts.append("```")
         parts.append(assistant_msg)
         parts.append("```")

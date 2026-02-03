@@ -321,7 +321,7 @@ def main():
     # 提取关键信息
     last_interaction = get_last_interaction(records)
     todos = get_current_todos(records)
-    conversation_text = extract_conversation_text(records, max_chars=50000)
+    conversation_text = extract_conversation_text(records, max_chars=80000)
 
     logger.info("Last interaction user message length: %d", len(last_interaction.get("user_message", "")))
     logger.info("Found %d todos", len(todos))
