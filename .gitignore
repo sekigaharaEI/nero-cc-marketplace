@@ -45,4 +45,4 @@ Thumbs.db
 .env.local
 
 # local files
-.claude\settings.local.json
+.claude/

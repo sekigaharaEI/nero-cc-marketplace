@@ -54,6 +54,20 @@ pip install anthropic>=0.18.0
 | `ANTHROPIC_BASE_URL` | 否 | - | 自定义 API 地址（支持代理） |
 | `ANTHROPIC_DEFAULT_SONNET_MODEL` | 否 | `claude-sonnet-4-20250514` | 使用的模型 |
 
+## 快速开始
+
+安装插件后，运行初始化命令检测环境并完成配置：
+
+```bash
+/init
+```
+
+初始化向导会：
+1. 检测 Python 版本和依赖包
+2. 引导安装缺失的依赖
+3. 检查 API 密钥配置
+4. 展示使用指南
+
 ## 使用方法
 
 ### 自动保存记忆
@@ -155,12 +169,17 @@ Memory Stalker 是 custom-compact 的完全升级版，包含其所有功能并�
 plugins/memory-stalker/
 ├── .claude-plugin/
 │   └── plugin.json           # 插件元数据
+├── commands/
+│   ├── init.md               # /init 初始化向导
+│   ├── edit-memory-prompt.md # /edit-memory-prompt 编辑提示词
+│   ├── commit.md             # /commit 提交命令
+│   ├── memories.md           # /memories 记忆浏览
+│   └── resume.md             # /resume 接续对话
 ├── hooks/
 │   └── hooks.json            # PreCompact Hook 配置
-├── skills/
-│   ├── resume.md        # /resume 技能
-│   └── memories.md      # /memories 技能
 ├── scripts/
+│   ├── check_env.py          # 环境检测脚本
+│   ├── find_prompt_path.py   # 提示词路径查找脚本
 │   ├── save_memory.py        # 记忆保存脚本
 │   ├── list_memories.py      # 记忆列表脚本
 │   └── transcript_parser.py  # transcript 解析器
@@ -177,6 +196,35 @@ plugins/memory-stalker/
 # 查看日志
 tail -f ~/.claude/logs/memory_stalker.log
 ```
+
+## 自定义摘要提示词
+
+如果你想自定义 AI 生成摘要的格式和内容，可以使用命令编辑提示词：
+
+```bash
+/edit-memory-prompt
+```
+
+该命令会自动查找正确的提示词文件位置（优先使用缓存目录，确保修改立即生效）。
+
+### 提示词文件位置
+
+| 优先级 | 位置 | 说明 |
+|--------|------|------|
+| 1 | 缓存目录 | 修改后立即生效 |
+| 2 | `~/.claude/plugins/marketplaces/nero-cc-marketplace/plugins/memory-stalker/prompts/` | 插件安装目录 |
+
+### 可自定义内容
+
+提示词定义了 AI 如何从对话中提取和组织信息：
+
+| 可调整项 | 说明 |
+|----------|------|
+| 输出格式 | 添加/删除/修改摘要部分 |
+| 提取数量 | 调整每个部分的最大条目数 |
+| 语言风格 | 修改输出的语言和格式 |
+| 提取规则 | 自定义信息提取的优先级和规则 |
+| 特殊需求 | 添加项目特定的提取要求 |
 
 ## License
 
