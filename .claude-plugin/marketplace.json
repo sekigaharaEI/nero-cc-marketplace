@@ -34,6 +34,21 @@
         "slides",
         "productivity"
       ]
+    },
+    {
+      "name": "daemon-archon",
+      "source": "./plugins/daemon-archon",
+      "description": "守护进程执政官 - Claude Code 定时任务调度和智能体监控插件。支持 Probe 模式（长期任务监控）和 Cron 模式（定时任务执行）。",
+      "version": "1.0.0",
+      "tags": [
+        "daemon",
+        "scheduler",
+        "cron",
+        "probe",
+        "monitoring",
+        "automation",
+        "agent"
+      ]
     }
   ]
 }

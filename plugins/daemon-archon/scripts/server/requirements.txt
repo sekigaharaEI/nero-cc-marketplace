@@ -1,0 +1,17 @@
+# daemon-archon 依赖
+
+# FastAPI 服务
+fastapi>=0.100.0
+uvicorn>=0.23.0
+
+# 定时任务调度
+apscheduler>=3.10.0
+
+# 进程管理
+psutil>=5.9.0
+
+# Anthropic API (用于 Claude 二次分析)
+anthropic>=0.18.0
+
+# Cron 表达式解析
+croniter>=1.3.0
