@@ -336,6 +336,7 @@ def get_transcript_path(session_id: str) -> Optional[str]:
         transcript 文件的完整路径，如果未找到返回 None
     """
     try:
+        # 方法一：通过 claude --list-sessions 获取
         result = subprocess.run(
             ["claude", "--list-sessions", "--format=json"],
             capture_output=True,
@@ -343,17 +344,29 @@ def get_transcript_path(session_id: str) -> Optional[str]:
             timeout=10
         )
 
-        if result.returncode != 0:
-            logger.error(f"列出会话失败: {result.stderr}")
-            return None
+        if result.returncode == 0:
+            sessions = json.loads(result.stdout)
+            for session in sessions:
+                if session.get("session_id") == session_id:
+                    transcript_path = session.get("transcript_path")
+                    if transcript_path:
+                        return transcript_path
 
-        sessions = json.loads(result.stdout)
+        # 方法二：搜索常见的 transcript 位置
+        import glob
+        possible_patterns = [
+            str(Path.home() / ".claude" / "projects" / "*" / f"{session_id}.jsonl"),
+            str(Path.home() / ".claude" / "sessions" / f"{session_id}.jsonl"),
+            str(Path.home() / ".claude" / "transcripts" / f"{session_id}.jsonl"),
+        ]
 
-        for session in sessions:
-            if session.get("session_id") == session_id:
-                return session.get("transcript_path")
+        for pattern in possible_patterns:
+            matches = glob.glob(pattern)
+            if matches:
+                logger.info(f"通过路径搜索找到 transcript: {matches[0]}")
+                return matches[0]
 
-        logger.warning(f"未找到 session_id={session_id} 的会话")
+        logger.warning(f"未找到 session_id={session_id} 的 transcript")
         return None
 
     except subprocess.TimeoutExpired:

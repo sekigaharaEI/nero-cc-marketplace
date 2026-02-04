@@ -44,6 +44,9 @@
 | 编号 | 标题 | 优先级 | 状态 |
 |------|------|--------|------|
 | BUG-001 | Python 模块相对导入失败导致服务无法启动 | P0 | [x] 已修复 |
+| BUG-002 | Probe 启动失败：session-id 格式不符合 UUID 要求 | P0 | [x] 已修复 |
+| BUG-003 | Probe 完成后状态检测失败：无法获取 transcript 路径 | P1 | [x] 已修复 |
+| BUG-004 | Cron 任务执行结果解析失败：状态始终为 unknown | P1 | [ ] 待修复 |
 
 ---
 
@@ -154,3 +157,411 @@ from .state_store import ...
 ```
 
 修复后服务可正常启动。
+
+---
+
+### BUG-002: Probe 启动失败：session-id 格式不符合 UUID 要求
+
+- **状态**: [x] 已修复
+- **优先级**: P0(紧急)
+- **发现日期**: 2026-02-04
+- **修复日期**: 2026-02-04
+- **影响范围**: Probe 任务创建 (`/start-probe`)
+
+**问题描述**:
+执行 `/start-probe` 创建 Probe 任务时，Claude CLI 启动失败，返回错误 "Invalid session ID. Must be a valid UUID."。
+
+**复现步骤**:
+1. 确保 Archon 服务已启动 (`/archon-start`)
+2. 执行 `/start-probe <任务描述>`
+3. API 返回 `{"detail":"启动 Probe 失败"}`
+
+**错误日志**:
+```
+# ~/.claude/daemon-archon/20260204_112130_probe/probe_stderr.log
+Error: Invalid session ID. Must be a valid UUID.
+
+# ~/.claude/daemon-archon/server.log
+2026-02-04 11:21:32,275 - server.probe_executor - ERROR - Probe 启动失败，进程已退出
+2026-02-04 11:21:32,275 - __main__ - ERROR - 创建 Probe 任务失败: 启动 Probe 失败
+```
+
+**根因分析**:
+`probe_executor.py` 中的 `_start_claude_cli` 方法使用 task_id 作为 session_id：
+
+```python
+# probe_executor.py:173-178
+process = subprocess.Popen(
+    [
+        "claude",
+        "-p", initial_prompt,
+        "--session-id", task_id  # task_id 格式为 "20260204_112130_probe"
+    ],
+    ...
+)
+```
+
+但 Claude CLI 要求 `--session-id` 必须是有效的 UUID 格式（如 `550e8400-e29b-41d4-a716-446655440000`），而代码生成的 task_id 格式为 `YYYYMMDD_HHMMSS_probe`，不符合 UUID 规范。
+
+**修复方案**:
+
+方案一（推荐）：生成 UUID 作为 session_id，task_id 保持原格式
+```python
+import uuid
+
+async def _start_claude_cli(self, task_id: str, initial_prompt: str, project_path: str):
+    # 生成 UUID 作为 session_id
+    session_id = str(uuid.uuid4())
+
+    process = subprocess.Popen(
+        [
+            "claude",
+            "-p", initial_prompt,
+            "--session-id", session_id  # 使用 UUID
+        ],
+        ...
+    )
+
+    return {
+        "pid": process.pid,
+        "session_id": session_id,  # 返回 UUID
+        "log_dir": str(task_dir)
+    }
+```
+
+方案二：修改 task_id 生成逻辑，直接使用 UUID
+```python
+# main.py 中创建任务时
+import uuid
+task_id = str(uuid.uuid4())  # 替代 datetime.now().strftime("%Y%m%d_%H%M%S") + "_probe"
+```
+
+方案三：不使用 `--session-id` 参数，让 Claude CLI 自动生成
+```python
+process = subprocess.Popen(
+    [
+        "claude",
+        "-p", initial_prompt
+        # 移除 --session-id 参数
+    ],
+    ...
+)
+# 然后从 Claude CLI 输出或 transcript 目录获取自动生成的 session_id
+```
+
+**推荐方案一**，因为：
+- 保持 task_id 的可读性（便于人工识别任务）
+- session_id 使用 UUID 满足 Claude CLI 要求
+- 两者分离，职责清晰
+
+**相关文件**:
+- `plugins/daemon-archon/scripts/server/probe_executor.py` (主要修改)
+- `plugins/daemon-archon/scripts/server/main.py` (可选修改)
+
+**修复记录** (2026-02-04):
+采用方案一，生成 UUID 作为 session_id：
+
+1. 在 `probe_executor.py` 中添加 `import uuid`
+2. 修改 `_start_claude_cli` 方法：
+```python
+# 生成 UUID 作为 session_id（Claude CLI 要求 UUID 格式）
+session_id = str(uuid.uuid4())
+
+process = subprocess.Popen(
+    [
+        "claude",
+        "-p", initial_prompt,
+        "--session-id", session_id  # 使用 UUID 而非 task_id
+    ],
+    ...
+)
+```
+
+修复后 Probe 任务可正常创建和启动。
+
+---
+
+### BUG-003: Probe 完成后状态检测失败：无法获取 transcript 路径
+
+- **状态**: [x] 已修复
+- **优先级**: P1(高)
+- **发现日期**: 2026-02-04
+- **修复日期**: 2026-02-04
+- **影响范围**: Probe 任务状态检测 (`/check-task`)
+
+**问题描述**:
+当 Probe 任务快速完成并正常退出后，执行 `/check-task` 检查任务状态时返回 `"status": "unknown", "summary": "无法获取 transcript 路径"`，无法正确识别任务已完成。
+
+**复现步骤**:
+1. 创建一个简单的 Probe 任务（如分析项目亮点）
+2. 等待 Probe 完成（Claude CLI 输出结果后退出）
+3. 执行 `/check-task <task_id>`
+4. 返回 `{"status": "unknown", "summary": "无法获取 transcript 路径"}`
+
+**实际现象**:
+```bash
+# Probe 已成功完成，输出在 probe_stdout.log 中
+$ cat ~/.claude/daemon-archon/20260204_113007_probe/probe_stdout.log
+# 包含完整的分析结果
+
+# 但进程已退出
+$ ps -p 3413
+# 进程已退出
+
+# 检查任务状态
+$ curl -X POST http://127.0.0.1:8765/probe/20260204_113007_probe/check
+{"task_id": "20260204_113007_probe", "status": "unknown", "summary": "无法获取 transcript 路径", ...}
+```
+
+**根因分析**:
+
+1. **transcript 路径获取逻辑问题**：`probe_executor.py` 中的 `check_probe` 方法依赖 `get_transcript_path(session_id)` 获取 transcript 文件路径，但该函数可能无法正确定位 Claude CLI 生成的 transcript 文件。
+
+2. **进程退出检测不完善**：当检测到进程已退出时，代码将状态设为 `stopped`，但没有进一步分析 `probe_stdout.log` 来判断任务是否成功完成。
+
+```python
+# probe_executor.py:229-239
+if not process_alive:
+    append_log(self.task_id, "WARNING", f"Probe 进程 {pid} 已退出")
+    set_task_status(self.task_id, "stopped")
+    return AnalysisResult(
+        status="stopped",
+        summary=f"Probe 进程 {pid} 已退出"
+    )
+```
+
+3. **缺少对 stdout 输出的分析**：即使无法获取 transcript，也应该分析 `probe_stdout.log` 来判断任务执行结果。
+
+**修复方案**:
+
+方案一：增强进程退出时的结果分析
+```python
+async def check_probe(self) -> AnalysisResult:
+    # ... 现有代码 ...
+
+    if not process_alive:
+        # 进程已退出，分析 stdout 判断是否成功完成
+        stdout_log = Path(self.config.get("probe", {}).get("stdout_log", ""))
+        if stdout_log.exists():
+            content = stdout_log.read_text()
+            # 检查是否包含完成标志
+            completion_keywords = self.config.get("criteria", {}).get("completion_keywords", [])
+            if any(kw in content for kw in completion_keywords) or len(content) > 500:
+                set_task_status(self.task_id, "completed")
+                return AnalysisResult(
+                    status="completed",
+                    summary="Probe 任务已完成",
+                    progress=100
+                )
+
+        set_task_status(self.task_id, "stopped")
+        return AnalysisResult(
+            status="stopped",
+            summary=f"Probe 进程 {pid} 已退出"
+        )
+```
+
+方案二：修复 transcript 路径获取逻辑
+```python
+def get_transcript_path(session_id: str) -> Optional[str]:
+    # 检查多个可能的 transcript 位置
+    possible_paths = [
+        Path.home() / ".claude" / "projects" / "*" / f"{session_id}.json",
+        Path.home() / ".claude" / "sessions" / f"{session_id}.json",
+        Path.home() / ".claude" / "transcripts" / f"{session_id}.json",
+    ]
+
+    for pattern in possible_paths:
+        matches = list(Path.home().glob(str(pattern).replace(str(Path.home()), "")))
+        if matches:
+            return str(matches[0])
+
+    return None
+```
+
+方案三（推荐）：结合方案一和方案二
+- 优先尝试获取 transcript 进行分析
+- 如果无法获取 transcript 但进程已退出，则分析 stdout 输出
+- 根据输出内容判断任务是成功完成还是异常退出
+
+**相关文件**:
+- `plugins/daemon-archon/scripts/server/probe_executor.py`
+- `plugins/daemon-archon/scripts/server/analyzer.py`
+
+**修复记录** (2026-02-04):
+采用方案三，结合增强进程退出分析和 transcript 路径搜索：
+
+1. 修改 `probe_executor.py` 的 `check_probe` 方法：
+```python
+if not process_alive:
+    # 进程已退出，分析 stdout 输出判断是否成功完成
+    stdout_log_path = self.config.get("probe", {}).get("stdout_log")
+    if stdout_log_path:
+        stdout_log = Path(stdout_log_path)
+        if stdout_log.exists():
+            content = stdout_log.read_text(encoding='utf-8', errors='ignore')
+
+            # 检查完成标志、输出长度、错误标志
+            completion_keywords = self.config.get("criteria", {}).get("completion_keywords", [])
+            has_completion = any(kw in content for kw in completion_keywords)
+            has_output = len(content.strip()) > 500
+
+            failure_indicators = self.config.get("criteria", {}).get("failure_indicators", [])
+            has_error = any(indicator in content for indicator in failure_indicators)
+
+            if (has_completion or has_output) and not has_error:
+                set_task_status(self.task_id, "completed")
+                return AnalysisResult(status="completed", summary="Probe 任务已完成", progress=100)
+```
+
+2. 增强 `analyzer.py` 的 `get_transcript_path` 函数：
+```python
+def get_transcript_path(session_id: str) -> Optional[str]:
+    # 方法一：通过 claude --list-sessions 获取
+    result = subprocess.run(["claude", "--list-sessions", "--format=json"], ...)
+    if result.returncode == 0:
+        sessions = json.loads(result.stdout)
+        for session in sessions:
+            if session.get("session_id") == session_id:
+                return session.get("transcript_path")
+
+    # 方法二：搜索常见的 transcript 位置
+    possible_patterns = [
+        "~/.claude/projects/*/session_id.jsonl",
+        "~/.claude/sessions/session_id.jsonl",
+        "~/.claude/transcripts/session_id.jsonl",
+    ]
+    for pattern in possible_patterns:
+        matches = glob.glob(pattern)
+        if matches:
+            return matches[0]
+```
+
+修复后，即使无法获取 transcript，也能通过分析 stdout 输出正确判断任务完成状态。
+
+---
+
+### BUG-004: Cron 任务执行结果解析失败：状态始终为 unknown
+
+- **状态**: [ ] 待修复
+- **优先级**: P1(高)
+- **发现日期**: 2026-02-04
+- **修复日期**: -
+- **影响范围**: Cron 任务执行结果分析
+
+**问题描述**:
+Cron 任务正常执行完成，但执行结果状态始终显示为 `unknown`，无法正确解析 Claude CLI 的输出。这导致：
+1. 任务执行统计不准确（`last_result` 为 `None`）
+2. 无法根据执行结果触发告警或通知
+3. 内存监控等任务无法正确记录告警信息
+
+**复现步骤**:
+1. 创建 Cron 任务：`/start-cron 每分钟监控系统内存，超过100G时记录`
+2. 等待任务自动执行或手动触发
+3. 查看任务日志：`cat ~/.claude/daemon-archon/{task_id}/archon.log`
+4. 日志显示 `执行完成: unknown, `
+
+**实际现象**:
+```bash
+# 任务日志
+$ cat ~/.claude/daemon-archon/20260204_115154_cron/archon.log
+[2026-02-04 11:52:54] [ACTION] 开始执行 Cron 任务
+[2026-02-04 11:53:34] [OUTPUT] 执行完成: unknown,   # 状态为 unknown，summary 为空
+
+# 任务配置
+$ cat config.json | jq '.execution'
+{
+  "run_count": 2,
+  "last_result": null,  # 结果为 null
+  "consecutive_failures": 0
+}
+
+# 当前系统内存 116GB > 100GB 阈值，但未记录告警
+$ free -g
+              total        used        free
+Mem:            251         116          88
+```
+
+**根因分析**:
+
+1. **Claude CLI 输出格式问题**：`cron_executor.py` 使用 `--output-format json` 参数执行 Claude CLI：
+```python
+# cron_executor.py:253-258
+result = subprocess.run(
+    [
+        "claude",
+        "-p", prompt,
+        "--output-format", "json"  # 期望 JSON 格式输出
+    ],
+    ...
+)
+```
+
+但 `--output-format json` 的实际输出格式可能与 `CronResultAnalyzer` 期望的格式不匹配。
+
+2. **结果解析逻辑问题**：`CronResultAnalyzer.analyze_output()` 可能无法正确解析 Claude CLI 的 JSON 输出，导致返回默认的 `unknown` 状态。
+
+3. **可能的输出格式差异**：
+   - 期望格式：`{"status": "success", "summary": "...", "findings": [...], "metrics": {...}}`
+   - 实际格式：Claude CLI 的 `--output-format json` 可能输出的是会话元数据，而非任务执行结果
+
+**修复方案**:
+
+方案一：移除 `--output-format json`，直接解析文本输出
+```python
+async def _execute_claude_cli(self, prompt: str) -> Dict[str, Any]:
+    result = subprocess.run(
+        [
+            "claude",
+            "-p", prompt
+            # 移除 --output-format json
+        ],
+        ...
+    )
+
+    # 从文本输出中提取 JSON 结果
+    output = result.stdout
+    json_match = re.search(r'```json\s*(.*?)\s*```', output, re.DOTALL)
+    if json_match:
+        try:
+            return {"output": json.loads(json_match.group(1)), "raw": output}
+        except json.JSONDecodeError:
+            pass
+
+    return {"output": output, "raw": output}
+```
+
+方案二：增强 `CronResultAnalyzer` 的解析能力
+```python
+class CronResultAnalyzer:
+    def analyze_output(self, output: str) -> AnalysisResult:
+        # 尝试多种解析方式
+        # 1. 直接解析 JSON
+        try:
+            data = json.loads(output)
+            if "result" in data:  # Claude CLI JSON 格式
+                return self._parse_claude_json(data)
+        except json.JSONDecodeError:
+            pass
+
+        # 2. 从 markdown 代码块中提取 JSON
+        json_match = re.search(r'```json\s*(.*?)\s*```', output, re.DOTALL)
+        if json_match:
+            try:
+                data = json.loads(json_match.group(1))
+                return self._parse_result_json(data)
+            except json.JSONDecodeError:
+                pass
+
+        # 3. 基于关键词分析
+        return self._analyze_by_keywords(output)
+```
+
+方案三（推荐）：结合方案一和方案二
+- 移除 `--output-format json`，获取原始文本输出
+- 增强解析器，支持从文本中提取 JSON 或基于关键词分析
+- 添加调试日志，记录原始输出便于排查
+
+**相关文件**:
+- `plugins/daemon-archon/scripts/server/cron_executor.py`
+- `plugins/daemon-archon/scripts/server/analyzer.py`

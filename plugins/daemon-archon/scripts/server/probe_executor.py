@@ -9,6 +9,7 @@ import re
 import json
 import logging
 import subprocess
+import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any, Tuple
@@ -156,7 +157,7 @@ class ProbeExecutor:
         启动 Claude Code CLI
 
         Args:
-            task_id: 任务 ID（同时作为 session_id）
+            task_id: 任务 ID
             initial_prompt: 初始提示词
             project_path: 项目路径
 
@@ -167,6 +168,9 @@ class ProbeExecutor:
         stdout_log = task_dir / "probe_stdout.log"
         stderr_log = task_dir / "probe_stderr.log"
 
+        # 生成 UUID 作为 session_id（Claude CLI 要求 UUID 格式）
+        session_id = str(uuid.uuid4())
+
         try:
             # 使用 nohup 后台启动
             with open(stdout_log, 'w') as stdout_f, open(stderr_log, 'w') as stderr_f:
@@ -174,7 +178,7 @@ class ProbeExecutor:
                     [
                         "claude",
                         "-p", initial_prompt,
-                        "--session-id", task_id
+                        "--session-id", session_id
                     ],
                     cwd=project_path,
                     stdout=stdout_f,
@@ -188,10 +192,10 @@ class ProbeExecutor:
 
             # 检查进程是否存活
             if process.poll() is None:
-                logger.info(f"Probe 启动成功, PID: {process.pid}")
+                logger.info(f"Probe 启动成功, PID: {process.pid}, session_id: {session_id}")
                 return {
                     "pid": process.pid,
-                    "session_id": task_id,
+                    "session_id": session_id,
                     "log_dir": str(task_dir)
                 }
             else:
@@ -231,7 +235,40 @@ class ProbeExecutor:
             process_alive = self._check_process_alive(pid)
 
             if not process_alive:
+                # 进程已退出，分析输出判断是否成功完成
                 append_log(self.task_id, "WARNING", f"Probe 进程 {pid} 已退出")
+
+                # 尝试分析 stdout 输出
+                stdout_log_path = self.config.get("probe", {}).get("stdout_log")
+                if stdout_log_path:
+                    stdout_log = Path(stdout_log_path)
+                    if stdout_log.exists():
+                        try:
+                            content = stdout_log.read_text(encoding='utf-8', errors='ignore')
+
+                            # 检查是否包含完成标志
+                            completion_keywords = self.config.get("criteria", {}).get("completion_keywords", [])
+                            has_completion = any(kw in content for kw in completion_keywords)
+
+                            # 检查是否有实质性输出（超过 500 字符）
+                            has_output = len(content.strip()) > 500
+
+                            # 检查是否有错误标志
+                            failure_indicators = self.config.get("criteria", {}).get("failure_indicators", [])
+                            has_error = any(indicator in content for indicator in failure_indicators)
+
+                            if (has_completion or has_output) and not has_error:
+                                set_task_status(self.task_id, "completed")
+                                append_log(self.task_id, "ACTION", "Probe 任务已完成（基于输出分析）")
+                                return AnalysisResult(
+                                    status="completed",
+                                    summary="Probe 任务已完成",
+                                    progress=100
+                                )
+                        except Exception as e:
+                            logger.error(f"分析 stdout 失败: {e}")
+
+                # 无法判断是否成功，标记为 stopped
                 set_task_status(self.task_id, "stopped")
                 return AnalysisResult(
                     status="stopped",
