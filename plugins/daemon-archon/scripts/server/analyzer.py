@@ -6,6 +6,7 @@ daemon-archon 结果分析器
 
 import json
 import logging
+import re
 import subprocess
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List
@@ -170,13 +171,30 @@ class CronResultAnalyzer:
         Returns:
             分析结果
         """
-        # 尝试解析 JSON 输出
+        if not output or not output.strip():
+            return AnalysisResult(
+                status="unknown",
+                summary="无输出"
+            )
+
+        # 方法一：尝试直接解析 JSON
         try:
             result = json.loads(output)
             return self._analyze_json_result(result)
         except json.JSONDecodeError:
-            # 非 JSON 输出，进行文本分析
-            return self._analyze_text_result(output)
+            pass
+
+        # 方法二：从 markdown 代码块中提取 JSON
+        json_match = re.search(r'```json\s*(.*?)\s*```', output, re.DOTALL)
+        if json_match:
+            try:
+                result = json.loads(json_match.group(1))
+                return self._analyze_json_result(result)
+            except json.JSONDecodeError:
+                pass
+
+        # 方法三：基于关键词分析文本
+        return self._analyze_text_result(output)
 
     def _analyze_json_result(self, result: Dict[str, Any]) -> AnalysisResult:
         """分析 JSON 格式的结果"""
@@ -206,11 +224,14 @@ class CronResultAnalyzer:
 
         # 检查错误关键词
         error_keywords = ["error", "failed", "exception", "fatal", "错误", "失败"]
-        warning_keywords = ["warning", "warn", "警告"]
+        warning_keywords = ["warning", "warn", "警告", "注意"]
+        success_keywords = ["success", "completed", "done", "finished", "成功", "完成"]
 
         issues = []
-        status = "success"
+        status = "success"  # 默认成功
+        findings = []
 
+        # 检查错误
         for keyword in error_keywords:
             if keyword in output_lower:
                 status = "error"
@@ -221,6 +242,7 @@ class CronResultAnalyzer:
                 })
                 break
 
+        # 如果没有错误，检查警告
         if status != "error":
             for keyword in warning_keywords:
                 if keyword in output_lower:
@@ -232,10 +254,34 @@ class CronResultAnalyzer:
                     })
                     break
 
+        # 提取关键信息作为 findings
+        # 尝试提取数字指标（如内存、CPU、磁盘使用率等）
+        metric_patterns = [
+            r'(\d+(?:\.\d+)?)\s*%',  # 百分比
+            r'(\d+(?:\.\d+)?)\s*GB',  # GB
+            r'(\d+(?:\.\d+)?)\s*MB',  # MB
+            r'(\d+(?:\.\d+)?)\s*ms',  # 毫秒
+        ]
+
+        for pattern in metric_patterns:
+            matches = re.findall(pattern, output, re.IGNORECASE)
+            if matches:
+                findings.extend([f"指标: {m}" for m in matches[:5]])  # 最多5个
+
+        # 生成摘要
+        summary_lines = output.strip().split('\n')
+        # 取前3行或前200字符作为摘要
+        summary = '\n'.join(summary_lines[:3])[:200]
+
+        # 如果输出很长且没有明确的成功/失败标志，标记为 success
+        if len(output.strip()) > 100 and status == "success":
+            summary = f"任务执行完成 ({len(output)} 字符输出)"
+
         return AnalysisResult(
             status=status,
-            summary=output[:100] if output else "无输出",
-            issues=issues
+            summary=summary if summary else "无输出",
+            issues=issues,
+            findings=findings
         )
 
     def should_notify(self, result: AnalysisResult) -> bool:

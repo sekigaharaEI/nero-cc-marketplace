@@ -46,7 +46,8 @@
 | BUG-001 | Python 模块相对导入失败导致服务无法启动 | P0 | [x] 已修复 |
 | BUG-002 | Probe 启动失败：session-id 格式不符合 UUID 要求 | P0 | [x] 已修复 |
 | BUG-003 | Probe 完成后状态检测失败：无法获取 transcript 路径 | P1 | [x] 已修复 |
-| BUG-004 | Cron 任务执行结果解析失败：状态始终为 unknown | P1 | [ ] 待修复 |
+| BUG-004 | Cron 任务执行结果解析失败：状态始终为 unknown | P1 | [x] 已修复 |
+| BUG-005 | 停止任务后状态不一致：config.json 未更新 | P2 | [ ] 待修复 |
 
 ---
 
@@ -443,10 +444,10 @@ def get_transcript_path(session_id: str) -> Optional[str]:
 
 ### BUG-004: Cron 任务执行结果解析失败：状态始终为 unknown
 
-- **状态**: [ ] 待修复
+- **状态**: [x] 已修复
 - **优先级**: P1(高)
 - **发现日期**: 2026-02-04
-- **修复日期**: -
+- **修复日期**: 2026-02-04
 - **影响范围**: Cron 任务执行结果分析
 
 **问题描述**:
@@ -565,3 +566,245 @@ class CronResultAnalyzer:
 **相关文件**:
 - `plugins/daemon-archon/scripts/server/cron_executor.py`
 - `plugins/daemon-archon/scripts/server/analyzer.py`
+
+---
+
+### BUG-005: 停止任务后状态不一致：config.json 未更新
+
+- **状态**: [x] 已修复
+- **优先级**: P2(中)
+- **发现日期**: 2026-02-05
+- **修复日期**: 2026-02-05
+- **影响范围**: 任务停止操作 (`/stop-cron`, `/stop-probe`)
+
+**问题描述**:
+调用 `/stop-cron` 或 `/stop-probe` API 停止任务后，虽然任务从调度器移除且不再执行，但 `config.json` 文件中的 `state.status` 字段没有更新为 `stopped`，仍然显示为 `active`。这导致：
+1. API 返回的任务列表中状态显示不正确
+2. 用户无法通过 `/list-tasks` 准确了解任务真实状态
+3. 状态数据不一致，可能影响任务恢复逻辑
+
+**复现步骤**:
+1. 创建并启动一个 Cron 任务：`/start-cron ...`
+2. 停止任务：`curl -X POST http://127.0.0.1:8765/cron/{task_id}/stop`
+3. API 返回 `{"success": true}`
+4. 检查任务状态：`curl http://127.0.0.1:8765/tasks`
+5. 状态显示为 `active`，而非 `stopped`
+6. 检查配置文件：`cat ~/.claude/daemon-archon/{task_id}/config.json`
+7. `state.status` 仍为 `active`
+
+**实际现象**:
+```bash
+# 停止任务
+$ curl -X POST http://127.0.0.1:8765/cron/20260205_023911_cron/stop
+{"success":true,"task_id":"20260205_023911_cron"}
+
+# 检查 status 文件（已更新）
+$ cat ~/.claude/daemon-archon/20260205_023911_cron/status
+stopped
+
+# 检查 config.json（未更新）
+$ cat ~/.claude/daemon-archon/20260205_023911_cron/config.json | jq '.state.status'
+"active"
+
+# API 返回的状态（读取 config.json）
+$ curl -s http://127.0.0.1:8765/tasks | jq '.tasks[] | select(.task_id=="20260205_023911_cron") | .state.status'
+"active"
+
+# 任务日志显示已停止
+$ tail -1 ~/.claude/daemon-archon/20260205_023911_cron/archon.log
+[2026-02-05 03:02:40] [ACTION] Cron 任务已停止
+
+# 调度器日志显示已移除
+$ grep "已移除任务" ~/.claude/daemon-archon/server.log | tail -1
+2026-02-05 03:02:40,558 - server.scheduler - INFO - 已移除任务: cron_20260205_023911_cron
+```
+
+**根因分析**:
+
+1. **状态存储机制不一致**：daemon-archon 使用两种方式存储任务状态：
+   - `status` 文件：单独的文本文件，存储简单的状态字符串
+   - `config.json` 文件：完整的任务配置，包含 `state.status` 字段
+
+2. **`set_task_status` 只更新 status 文件**：
+```python
+# state_store.py:170-180
+def set_task_status(task_id: str, status: str) -> bool:
+    """设置任务状态"""
+    task_dir = ensure_task_dir(task_id)
+    status_file = task_dir / "status"
+
+    try:
+        status_file.write_text(status)  # 只更新 status 文件
+        return True
+    except Exception as e:
+        logger.error(f"设置任务状态失败 [{task_id}]: {e}")
+        return False
+```
+
+3. **API 读取 config.json**：`/tasks` API 通过 `load_task_config()` 读取 `config.json`，而不是读取 `status` 文件，导致返回的状态是旧的。
+
+4. **stop_cron/stop_probe 只调用 set_task_status**：
+```python
+# cron_executor.py:370-374
+async def stop_cron(self) -> bool:
+    """停止 Cron 任务"""
+    set_task_status(self.task_id, "stopped")  # 只更新 status 文件
+    append_log(self.task_id, "ACTION", "Cron 任务已停止")
+    return True
+```
+
+**修复方案**:
+
+方案一（推荐）：修改 `set_task_status` 同时更新 config.json
+```python
+def set_task_status(task_id: str, status: str) -> bool:
+    """设置任务状态"""
+    task_dir = ensure_task_dir(task_id)
+    status_file = task_dir / "status"
+
+    try:
+        # 更新 status 文件
+        status_file.write_text(status)
+
+        # 同时更新 config.json
+        config = load_task_config(task_id)
+        if config:
+            config["state"]["status"] = status
+            save_task_config(task_id, config)
+
+        return True
+    except Exception as e:
+        logger.error(f"设置任务状态失败 [{task_id}]: {e}")
+        return False
+```
+
+方案二：在 stop_cron/stop_probe 中手动更新配置
+```python
+async def stop_cron(self) -> bool:
+    """停止 Cron 任务"""
+    if not self.config:
+        self.load_config()
+
+    # 更新配置
+    if self.config:
+        self.config["state"]["status"] = "stopped"
+        save_task_config(self.task_id, self.config)
+
+    set_task_status(self.task_id, "stopped")
+    append_log(self.task_id, "ACTION", "Cron 任务已停止")
+    return True
+```
+
+方案三：统一状态存储，移除 status 文件
+```python
+def set_task_status(task_id: str, status: str) -> bool:
+    """设置任务状态"""
+    config = load_task_config(task_id)
+    if not config:
+        return False
+
+    config["state"]["status"] = status
+    return save_task_config(task_id, config)
+
+def get_task_status(task_id: str) -> Optional[str]:
+    """获取任务状态"""
+    config = load_task_config(task_id)
+    return config.get("state", {}).get("status") if config else None
+```
+
+**推荐方案一**，因为：
+- 保持向后兼容（status 文件仍然存在）
+- 确保两种状态存储方式同步
+- 修改最小，影响范围可控
+
+**相关文件**:
+- `plugins/daemon-archon/scripts/server/state_store.py` (主要修改)
+- `plugins/daemon-archon/scripts/server/cron_executor.py`
+- `plugins/daemon-archon/scripts/server/probe_executor.py`
+
+**修复记录** (2026-02-04):
+采用方案三，移除 `--output-format json` 并增强解析器：
+
+1. 修改 `cron_executor.py` 的 `_execute_claude_cli` 方法：
+```python
+# 移除 --output-format json，获取原始文本输出
+result = subprocess.run(
+    [
+        "claude",
+        "-p", prompt
+        # 移除 --output-format json
+    ],
+    ...
+)
+
+# 记录原始输出用于调试
+logger.debug(f"Claude CLI 原始输出: {result.stdout[:500]}")
+```
+
+2. 增强 `analyzer.py` 的 `CronResultAnalyzer.analyze_output` 方法：
+```python
+def analyze_output(self, output: str) -> AnalysisResult:
+    # 方法一：尝试直接解析 JSON
+    try:
+        result = json.loads(output)
+        return self._analyze_json_result(result)
+    except json.JSONDecodeError:
+        pass
+
+    # 方法二：从 markdown 代码块中提取 JSON
+    json_match = re.search(r'```json\s*(.*?)\s*```', output, re.DOTALL)
+    if json_match:
+        try:
+            result = json.loads(json_match.group(1))
+            return self._analyze_json_result(result)
+        except json.JSONDecodeError:
+            pass
+
+    # 方法三：基于关键词分析文本
+    return self._analyze_text_result(output)
+```
+
+3. 增强 `_analyze_text_result` 方法：
+```python
+def _analyze_text_result(self, output: str) -> AnalysisResult:
+    # 检查错误、警告、成功关键词
+    # 提取数字指标（百分比、GB、MB、ms等）
+    # 生成智能摘要
+    # 默认状态为 success（而非 unknown）
+```
+
+修复后，Cron 任务可以正确解析 Claude CLI 的文本输出，状态不再始终为 unknown。
+
+---
+
+**BUG-005 修复记录** (2026-02-05):
+采用方案一，修改 `set_task_status` 函数同时更新 `status` 文件和 `config.json`：
+
+修改 `state_store.py` 的 `set_task_status` 函数：
+```python
+def set_task_status(task_id: str, status: str) -> bool:
+    """
+    设置任务状态
+
+    同时更新 status 文件和 config.json 中的 state.status 字段
+    """
+    task_dir = ensure_task_dir(task_id)
+    status_file = task_dir / "status"
+
+    try:
+        # 更新 status 文件
+        status_file.write_text(status)
+
+        # 同步更新 config.json
+        config = load_task_config(task_id)
+        if config:
+            config.setdefault("state", {})["status"] = status
+            save_task_config(task_id, config)
+
+        return True
+    except Exception as e:
+        logger.error(f"设置任务状态失败 [{task_id}]: {e}")
+        return False
+```
+
+修复后，调用 `/stop-cron` 或 `/stop-probe` API 停止任务时，`status` 文件和 `config.json` 中的状态会同步更新为 `stopped`，API 返回的任务状态也会正确显示。

@@ -168,12 +168,24 @@ def get_task_status(task_id: str) -> Optional[str]:
 
 
 def set_task_status(task_id: str, status: str) -> bool:
-    """设置任务状态"""
+    """
+    设置任务状态
+
+    同时更新 status 文件和 config.json 中的 state.status 字段
+    """
     task_dir = ensure_task_dir(task_id)
     status_file = task_dir / "status"
 
     try:
+        # 更新 status 文件
         status_file.write_text(status)
+
+        # 同步更新 config.json
+        config = load_task_config(task_id)
+        if config:
+            config.setdefault("state", {})["status"] = status
+            save_task_config(task_id, config)
+
         return True
     except Exception as e:
         logger.error(f"设置任务状态失败 [{task_id}]: {e}")

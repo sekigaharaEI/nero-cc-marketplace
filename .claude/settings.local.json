@@ -15,7 +15,12 @@
       "Bash(warning)",
       "Bash(error\"\"\",\\\\n  \"\"\"summary\"\"\": \"\"\"内存监控结果\"\"\",\\\\n  \"\"\"findings\"\"\": [\\\\n    {\"\"\"level\"\"\": \"\"\"info)",
       "Bash('warning, message: 内存使用情况}\\\\n  ],\\\\n  metrics: {\\\\n    memory_used_gb: 数值,\\\\n    memory_total_gb: 数值,\\\\n    threshold_exceeded: true/false\\\\n  }\\\\n}\\\\n```,\n        check_interval_minutes: 0.5,\n        timeout_minutes: 2\n    }')",
-      "Bash('warning, memory_used_gb: N, memory_total_gb: N, threshold_exceeded: bool},\n        check_interval_minutes: 1,\n        timeout_minutes: 2\n    }')"
+      "Bash('warning, memory_used_gb: N, memory_total_gb: N, threshold_exceeded: bool},\n        check_interval_minutes: 1,\n        timeout_minutes: 2\n    }')",
+      "Bash(kill:*)",
+      "Bash(for task_id in 20260205_023911_cron 20260205_025706_cron)",
+      "Bash(do echo \"=== $task_id ===\" curl -s \"http://127.0.0.1:8765/tasks\")",
+      "Skill(write-long-text)",
+      "Skill(write-long-text:*)"
     ]
   }
 }

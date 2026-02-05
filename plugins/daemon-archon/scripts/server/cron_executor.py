@@ -250,17 +250,20 @@ class CronExecutor:
         project_path = self.config.get("project_path", ".")
 
         try:
+            # 移除 --output-format json，获取原始文本输出
             result = subprocess.run(
                 [
                     "claude",
-                    "-p", prompt,
-                    "--output-format", "json"
+                    "-p", prompt
                 ],
                 cwd=project_path,
                 capture_output=True,
                 text=True,
                 timeout=timeout_seconds
             )
+
+            # 记录原始输出用于调试
+            logger.debug(f"Claude CLI 原始输出: {result.stdout[:500]}")
 
             return {
                 "output": result.stdout,
