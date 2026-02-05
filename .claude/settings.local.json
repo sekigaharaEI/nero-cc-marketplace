@@ -20,7 +20,8 @@
       "Bash(for task_id in 20260205_023911_cron 20260205_025706_cron)",
       "Bash(do echo \"=== $task_id ===\" curl -s \"http://127.0.0.1:8765/tasks\")",
       "Skill(write-long-text)",
-      "Skill(write-long-text:*)"
+      "Skill(write-long-text:*)",
+      "Bash(xargs ls:*)"
     ]
   }
 }
