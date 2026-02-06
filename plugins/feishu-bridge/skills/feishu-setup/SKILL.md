@@ -230,35 +230,24 @@ Config loaded from: /root/.feishu-bridge/config.json
 
 Open ID 是飞书用户的唯一标识符，格式为 `ou_xxxxxxxxxx`。
 
-**方法 1: 通过飞书管理后台（推荐）**
+**方法：通过 API 调试台获取（推荐）**
 
-🔗 **飞书管理后台**: https://feishu.cn/admin
-
-**操作步骤**：
-
-1. 登录飞书管理后台
-2. 点击左侧菜单 **"通讯录"**
-3. 找到你自己或目标用户
-4. 点击用户名，进入用户详情页
-5. 在用户信息中找到 **"Open ID"** 字段
-6. 复制 Open ID（格式：`ou_xxxxxxxxxx`）
-
-**方法 2: 通过飞书开放平台**
-
-🔗 **事件订阅**: https://open.feishu.cn/app （选择你的应用 → 事件订阅）
+🔗 **API 调试台**: https://open.feishu.cn/api-explorer
 
 **操作步骤**：
 
-1. 配置事件订阅（需要一个公网可访问的回调地址）
-2. 订阅 `im.message.receive_v1` 事件
-3. 在飞书客户端中给你的应用发送一条消息
-4. 在事件订阅的日志中查看 `sender.sender_id.open_id`
+1. 登录 [API 调试台](https://open.feishu.cn/api-explorer)
+2. 找到 [发送消息](https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/im-v1/message/create) 接口
+3. 在 **查询参数** 页签，将 **user_id_type** 设置为 **open_id**
+4. 点击 **快速复制 open_id** 按钮
+5. 在弹窗中，搜索或选择指定用户
+6. 点击 **复制成员 ID**，获取用户的 open_id（格式：`ou_xxxxxxxxxx`）
 
 **使用 AskUserQuestion 获取 Open ID**：
 
 ```
 问题: "请提供接收者的 Open ID"
-说明: "从飞书管理后台的通讯录中获取，格式为 ou_xxxxxxxxxx"
+说明: "从 API 调试台获取，格式为 ou_xxxxxxxxxx"
 输入框:
   - Open ID (格式: ou_xxxxxxxxxx)
 ```
