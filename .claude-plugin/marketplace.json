@@ -49,6 +49,20 @@
         "automation",
         "agent"
       ]
+    },
+    {
+      "name": "feishu-bridge",
+      "source": "./plugins/feishu-bridge",
+      "description": "飞书消息桥 - 通过飞书开放平台发送私聊通知消息。支持文本消息发送、环境变量和配置文件双模式凭证管理。",
+      "version": "1.0.1",
+      "tags": [
+        "feishu",
+        "lark",
+        "notification",
+        "messaging",
+        "automation",
+        "productivity"
+      ]
     }
   ]
 }

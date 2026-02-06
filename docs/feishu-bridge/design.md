@@ -55,18 +55,18 @@ nero-cc-marketplace/
 ```yaml
 ---
 name: feishu-send-notification
-description: 通过飞书开放平台发送通知消息。支持向个人(open_id)和群组(chat_id)发送文本消息。当需要发送飞书通知、提醒团队、同步状态时使用。
+description: 通过飞书开放平台发送私聊通知消息。向个人(open_id)发送文本消息。当需要发送飞书通知、提醒用户、同步状态时使用。
 allowed-tools: Bash(python:*), Bash(feishu-bridge:*)
 ---
 
 # 飞书消息通知
 
-向飞书发送通知消息,支持个人对话和群组对话。
+向飞书发送私聊通知消息,支持单个机器人应用的个人对话。
 
 ## 使用场景
 
 - 任务完成通知
-- 团队状态同步
+- 个人状态同步
 - 个人消息提醒
 - 工作流进度更新
 
@@ -74,7 +74,7 @@ allowed-tools: Bash(python:*), Bash(feishu-bridge:*)
 
 ### 发送个人消息
 
-向特定用户发送消息(使用用户的 Open ID):
+向特定用户发送私聊消息(使用用户的 Open ID):
 
 ```bash
 python3 /path/to/feishu-bridge/scripts/feishu_cli.py send \
@@ -82,22 +82,11 @@ python3 /path/to/feishu-bridge/scripts/feishu_cli.py send \
   --message "消息内容"
 ```
 
-### 发送群组消息
-
-向飞书群组发送消息(使用群组的 Chat ID):
-
-```bash
-python3 /path/to/feishu-bridge/scripts/feishu_cli.py send \
-  --chat <chat_id> \
-  --message "消息内容"
-```
-
 ## 参数说明
 
 | 参数 | 说明 | 示例 |
 |------|------|------|
-| `--to` | 用户 Open ID | `ou_xxx` |
-| `--chat` | 群组 Chat ID | `oc_xxx` |
+| `--to` | 用户 Open ID(必需) | `ou_xxx` |
 | `--message` | 消息文本 | `"任务已完成"` |
 
 ## 错误处理
@@ -112,12 +101,7 @@ python3 /path/to/feishu-bridge/scripts/feishu_cli.py send \
 
 ## 示例
 
-**通知团队任务完成:**
-```bash
-python3 feishu_cli.py send --chat oc_xxx --message "代码审查已完成,可以部署了"
-```
-
-**提醒个人会议时间:**
+**提醒会议时间:**
 ```bash
 python3 feishu_cli.py send --to ou_xxx --message "会议时间改到下午3点"
 ```
@@ -126,6 +110,7 @@ python3 feishu_cli.py send --to ou_xxx --message "会议时间改到下午3点"
 ### 关键设计点
 
 1. **allowed-tools**: 只允许运行 Python 和 feishu-bridge CLI 命令
+2. **仅私聊**: 暂时只支持个人私聊,不支持群组消息
 2. **简洁文档**: 聚焦使用方法,不包含安装步骤
 3. **错误引导**: 如果未配置,引导用户运行 `/feishu-setup`
 
@@ -239,15 +224,6 @@ Config loaded from: environment variables
 
 方法 2: 接收一条测试消息后在飞书开放平台查看
 
-### 3.2 获取群组 Chat ID
-
-方法 1: 通过群组信息
-1. 在飞书中打开群组
-2. 点击群名称 → 更多 → 群组信息
-3. 如果应用已加入群组,可以看到 Chat ID
-
-方法 2: 使用飞书 API 列出群组
-
 ## 步骤 4: 测试发送
 
 ### 4.1 发送测试消息
@@ -258,21 +234,16 @@ Config loaded from: environment variables
 python3 feishu_cli.py send --to <你的 open_id> --message "测试消息"
 ```
 
-### 4.2 发送到群组
-
-确保应用已加入群组,然后:
-
-```bash
-python3 feishu_cli.py send --chat <群组 chat_id> --message "测试消息"
-```
+如果收到消息,说明配置成功!
 
 ## 步骤 5: 使用 feishu-send-notification
 
-配置完成后,你可以在 Claude Code 中使用飞书通知功能:
+
+配置完成后,你可以在 Claude Code 中使用飞书私聊通知功能:
 
 ```
-用户: "代码审查完成后,在飞书群里通知团队"
-Claude: [审查完成] 发送通知到群组...
+用户: "代码审查完成后,通过飞书通知我"
+Claude: [审查完成] 发送私聊通知...
 ```
 
 或者直接调用发送通知的功能。
@@ -303,8 +274,7 @@ Claude: [审查完成] 发送通知到群组...
 
 **解决**:
 1. 确认 Open ID 格式为 `ou_xxx`
-2. 确认 Chat ID 格式为 `oc_xxx`
-3. 确保应用已加入目标群组(群组消息)
+2. 重新从飞书管理后台获取正确的 Open ID
 
 ### 错误: "Network timeout"
 
@@ -458,15 +428,8 @@ def load_config():
 
 def cmd_send(args):
     """发送消息命令"""
-    # 验证参数
-    if not args.to and not args.chat:
-        print("错误: 必须指定 --to 或 --chat", file=sys.stderr)
-        sys.exit(1)
     
-    if args.to and args.chat:
-        print("错误: --to 和 --chat 不能同时使用", file=sys.stderr)
-        sys.exit(1)
-    
+
     # 加载配置
     config = load_config()
     if not config:
@@ -482,10 +445,7 @@ def cmd_send(args):
     )
     
     try:
-        if args.to:
-            result = client.send_text_message("open_id", args.to, args.message)
-        else:
-            result = client.send_text_message("chat_id", args.chat, args.message)
+        result = client.send_text_message("open_id", args.to, args.message)
         
         print(f"✅ 消息发送成功")
         print(f"   Message ID: {result['message_id']}")
@@ -534,8 +494,7 @@ def main():
     
     # send 命令
     send_parser = subparsers.add_parser("send", help="发送消息")
-    send_parser.add_argument("--to", help="用户 Open ID")
-    send_parser.add_argument("--chat", help="群组 Chat ID")
+    send_parser.add_argument("--to", required=True, help="用户 Open ID")
     send_parser.add_argument("--message", "-m", required=True, help="消息内容")
     
     # config 命令
@@ -593,7 +552,7 @@ requests>=2.28.0
   ↓
 模型识别意图 → 激活 feishu-send-notification skill
   ↓
-模型执行: python3 feishu_cli.py send --chat oc_xxx --message "部署完成"
+模型执行: python3 feishu_cli.py send --to ou_xxx --message "部署完成"
   ↓
 发送成功 → 向用户报告结果
 ```

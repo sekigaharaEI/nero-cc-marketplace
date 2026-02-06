@@ -21,7 +21,9 @@
       "Bash(do echo \"=== $task_id ===\" curl -s \"http://127.0.0.1:8765/tasks\")",
       "Skill(write-long-text)",
       "Skill(write-long-text:*)",
-      "Bash(xargs ls:*)"
+      "Bash(xargs ls:*)",
+      "Bash(chmod:*)",
+      "Bash(cat:*)"
     ]
   }
 }
