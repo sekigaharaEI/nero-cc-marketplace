@@ -191,27 +191,23 @@ pip install -r ${CLAUDE_PLUGIN_ROOT}/requirements.txt
 
 ---
 
-### 步骤 6: 选择配置方式
+### 步骤 6: 保存配置
 
-**使用 AskUserQuestion 让用户选择**：
-
-```
-问题: "选择凭证保存方式"
-选项:
-  - "配置文件 (推荐) - 保存到 ~/.feishu-bridge/config.json"
-  - "环境变量 - 保存到 ~/.bashrc 或 ~/.zshrc"
-```
-
-#### 方式 A: 配置文件（推荐）
-
-执行以下命令保存配置：
+执行以下命令保存配置到配置文件：
 
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/feishu_cli.py config set \
   --app-id "用户提供的App ID" \
   --app-secret "用户提供的App Secret" \
-  --domain "feishu"
+  --domain "feishu" \
+  --recipient-open-id "用户提供的Open ID"
 ```
+
+**参数说明**：
+- `--app-id`: 飞书应用 ID（必需）
+- `--app-secret`: 飞书应用密钥（必需）
+- `--domain`: 飞书域名，默认 feishu（必需）
+- `--recipient-open-id`: 接收者 Open ID（可选，用于钩子自动通知）
 
 **验证配置**：
 
@@ -224,39 +220,6 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/feishu_cli.py config show
 App ID: cli_xxxxxxxxxx
 Domain: feishu
 Config loaded from: /root/.feishu-bridge/config.json
-```
-
-#### 方式 B: 环境变量
-
-**检测用户的 Shell**：
-
-```bash
-echo $SHELL
-```
-
-根据结果选择配置文件：
-- `/bin/bash` → 编辑 `~/.bashrc`
-- `/bin/zsh` → 编辑 `~/.zshrc`
-
-**添加环境变量**：
-
-```bash
-# 飞书应用凭证
-export FEISHU_APP_ID="用户提供的App ID"
-export FEISHU_APP_SECRET="用户提供的App Secret"
-export FEISHU_DOMAIN="feishu"
-```
-
-**重新加载配置**：
-
-```bash
-source ~/.bashrc  # 或 source ~/.zshrc
-```
-
-**验证配置**：
-
-```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/feishu_cli.py config show
 ```
 
 ---
@@ -366,6 +329,19 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/feishu_cli.py send \
    - "代码审查完成后，通过飞书通知我"
    - "部署成功后发送飞书消息"
    - "测试失败时通知我"
+
+3. 自动化钩子（可选）：
+   插件提供两个自动化钩子：
+
+   a) Notification Hook - 等待提醒
+      当 Claude Code 需要你的交互时自动发送通知
+      需要配置: export FEISHU_RECIPIENT_OPEN_ID="ou_xxx"
+
+   b) Stop Hook - 任务完成通知
+      当 Claude Code 会话结束时自动发送简单的任务完成通知
+      所有配置已包含在配置文件中（recipient_open_id）
+
+   查看钩子状态: /hooks
 
 📚 相关文档：
 - 飞书开放平台: https://open.feishu.cn/

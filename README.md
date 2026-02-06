@@ -28,7 +28,7 @@
 | ------------------------------------------ | ----- | ------------------------------------------- |
 | [memory-stalker](./plugins/memory-stalker/)   | 1.0.6 | 记忆追猎者 - 智能压缩、可溯源存储、接续对话 |
 | [tt-pm-master](./plugins/tt-pm-master/) | 1.0.2 | Teacher Tui产品经理大师 - 专业的产品经理工具集     |
-| [feishu-bridge](./plugins/feishu-bridge/) | 1.0.1 | 飞书消息桥 - 通过飞书开放平台发送私聊通知消息 |
+| [feishu-bridge](./plugins/feishu-bridge/) | 1.0.3 | 飞书消息桥 - 通过飞书开放平台发送私聊通知消息 |
 
 ## 插件详情
 

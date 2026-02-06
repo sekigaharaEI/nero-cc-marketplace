@@ -76,17 +76,7 @@ class FeishuClient:
 
 
 def load_config():
-    """加载配置(优先环境变量,其次配置文件)"""
-    # 优先从环境变量读取
-    if os.getenv("FEISHU_APP_ID"):
-        return {
-            "app_id": os.getenv("FEISHU_APP_ID"),
-            "app_secret": os.getenv("FEISHU_APP_SECRET"),
-            "domain": os.getenv("FEISHU_DOMAIN", "feishu"),
-            "source": "environment variables"
-        }
-
-    # 从配置文件读取
+    """加载配置（从配置文件）"""
     config_dir = Path(os.getenv("FEISHU_BRIDGE_HOME", "~/.feishu-bridge")).expanduser()
     config_file = config_dir / "config.json"
 
@@ -151,6 +141,10 @@ def cmd_config_set(args):
         "domain": args.domain
     }
 
+    # 添加可选字段
+    if hasattr(args, 'recipient_open_id') and args.recipient_open_id:
+        config["recipient_open_id"] = args.recipient_open_id
+
     with open(config_file, 'w', encoding='utf-8') as f:
         json.dump(config, f, indent=2, ensure_ascii=False)
 
@@ -181,6 +175,7 @@ def main():
     set_parser.add_argument("--app-id", required=True, help="App ID")
     set_parser.add_argument("--app-secret", required=True, help="App Secret")
     set_parser.add_argument("--domain", default="feishu", help="域名(feishu/lark)")
+    set_parser.add_argument("--recipient-open-id", help="接收者 Open ID（可选，用于钩子）")
 
     args = parser.parse_args()
 

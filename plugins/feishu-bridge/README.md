@@ -99,9 +99,9 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/feishu_cli.py send \
 
 ## 配置方式
 
-**推荐**: 使用 `/feishu-setup` 交互式配置向导，它会自动引导你选择配置方式。
+使用 `/feishu-setup` 交互式配置向导完成配置。
 
-### 方式 1: 配置文件（推荐）
+### 配置文件
 
 使用 CLI 工具设置:
 
@@ -109,22 +109,128 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/feishu_cli.py send \
 python3 ~/.claude/plugins/feishu-bridge/scripts/feishu_cli.py config set \
   --app-id "cli_xxx" \
   --app-secret "xxx" \
-  --domain "feishu"
+  --domain "feishu" \
+  --recipient-open-id "ou_xxx"
 ```
 
-配置保存在 `~/.feishu-bridge/config.json`
+**参数说明**：
+- `--app-id`: 飞书应用 ID（必需）
+- `--app-secret`: 飞书应用密钥（必需）
+- `--domain`: 飞书域名，默认 feishu（必需）
+- `--recipient-open-id`: 接收者 Open ID（可选，用于钩子自动通知）
 
-### 方式 2: 环境变量
-
-在 `~/.bashrc` 或 `~/.zshrc` 中添加:
-
-```bash
-export FEISHU_APP_ID="cli_xxxxxxxxxx"
-export FEISHU_APP_SECRET="你的 App Secret"
-export FEISHU_DOMAIN="feishu"
-```
+配置保存在 `~/.feishu-bridge/config.json`，文件权限自动设置为 600。
 
 **注意**: 本插件仅支持飞书中国版，不支持 Lark 国际版。
+
+## Hooks (钩子)
+
+插件提供两个自动化钩子，在关键事件时发送飞书通知：
+
+### 1. Notification Hook - 等待提醒
+
+当 Claude Code 需要用户交互时自动发送飞书通知：
+
+**触发条件:**
+- `permission_prompt` - 权限请求等待确认
+- `idle_prompt` - 空闲超过 60 秒等待输入
+- `elicitation_dialog` - 需要用户提供信息
+
+**配置要求:**
+
+在配置文件中设置接收者 Open ID：
+
+```bash
+python3 ~/.claude/plugins/feishu-bridge/scripts/feishu_cli.py config set \
+  --app-id "cli_xxx" \
+  --app-secret "xxx" \
+  --domain "feishu" \
+  --recipient-open-id "ou_xxx"
+```
+
+或手动编辑 `~/.feishu-bridge/config.json`：
+
+```json
+{
+  "app_id": "cli_xxx",
+  "app_secret": "xxx",
+  "domain": "feishu",
+  "recipient_open_id": "ou_xxx"
+}
+```
+
+**通知示例:**
+- 🔔 Claude Code 正在等待您的权限确认
+- ⏰ Claude Code 正在等待您的回复
+- ❓ Claude Code 需要您的输入
+
+### 2. Stop Hook - 任务完成汇报
+
+当 Claude Code 会话结束时，自动发送简单的任务完成通知。
+
+**功能特性:**
+- 📋 发送任务完成提醒
+- ✅ 简洁明了的通知消息
+
+**配置要求:**
+
+在配置文件中设置接收者 Open ID：
+
+```bash
+python3 ~/.claude/plugins/feishu-bridge/scripts/feishu_cli.py config set \
+  --app-id "cli_xxx" \
+  --app-secret "xxx" \
+  --domain "feishu" \
+  --recipient-open-id "ou_xxx"
+```
+
+或手动编辑 `~/.feishu-bridge/config.json`：
+
+```json
+{
+  "app_id": "cli_xxx",
+  "app_secret": "xxx",
+  "domain": "feishu",
+  "recipient_open_id": "ou_xxx"
+}
+```
+
+**通知示例:**
+
+```
+📋 任务完成通知
+
+✅ Claude Code 任务已完成，请查看状态。
+```
+
+**工作原理:**
+
+Stop Hook 使用命令式钩子（Command-based Hook），当 Claude Code 完成任务时：
+1. 检查飞书配置是否存在
+2. 检查是否配置了接收者 Open ID
+3. 通过飞书 CLI 发送简单的任务完成通知
+4. 如果未配置飞书或接收者，静默跳过
+
+### 启用 Hooks
+
+Hooks 在插件安装后自动启用。可以通过以下命令查看：
+
+```bash
+/hooks
+```
+
+### 禁用 Hooks
+
+如果不需要自动通知，可以在项目的 `.claude/settings.local.json` 中禁用：
+
+```json
+{
+  "hooks": {
+    "Notification": [],
+    "Stop": []
+  }
+}
+```
 
 ## CLI 命令
 

@@ -1,0 +1,28 @@
+{
+  "description": "飞书消息桥钩子 - 在关键事件时发送飞书通知",
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "permission_prompt|idle_prompt|elicitation_dialog",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/send_notification.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/send_task_report.py",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
+}
