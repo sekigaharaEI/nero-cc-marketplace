@@ -232,7 +232,7 @@ Open ID 是飞书用户的唯一标识符，格式为 `ou_xxxxxxxxxx`。
 
 **方法：通过 API 调试台获取（推荐）**
 
-🔗 **API 调试台**: https://open.feishu.cn/api-explorer
+🔗 **API 调试台-发送消息**: https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/im-v1/message/create
 
 **操作步骤**：
 

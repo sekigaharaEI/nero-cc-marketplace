@@ -23,7 +23,9 @@
       "Skill(write-long-text:*)",
       "Bash(xargs ls:*)",
       "Bash(chmod:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(pip install:*)",
+      "Bash(set NO_PROXY=*)"
     ]
   }
 }

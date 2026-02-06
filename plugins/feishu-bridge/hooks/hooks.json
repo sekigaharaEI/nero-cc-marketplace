@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/send_notification.py",
+            "command": "python ${CLAUDE_PLUGIN_ROOT}/hooks/send_notification.py",
             "timeout": 10
           }
         ]
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/send_task_report.py",
+            "command": "python ${CLAUDE_PLUGIN_ROOT}/hooks/send_task_report.py",
             "timeout": 60
           }
         ]
