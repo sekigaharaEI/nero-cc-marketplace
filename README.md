@@ -16,10 +16,18 @@
 /plugin list --marketplace nero-cc-marketplace
 ```
 
-### 安装插件
+### 安装插件（github）
 
 ```bash
 /plugin install {plugin-name}@nero-cc-marketplace
+```
+
+### 安装插件（jty内网）
+
+```bash
+# 需要开通jty git账号
+
+/plugin install http://username:password@192.168.4.93/zyw23973/jtyjy-cc-marketplace.git
 ```
 
 ## 可用插件
