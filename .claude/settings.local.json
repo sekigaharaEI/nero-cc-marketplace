@@ -25,7 +25,8 @@
       "Bash(chmod:*)",
       "Bash(cat:*)",
       "Bash(pip install:*)",
-      "Bash(set NO_PROXY=*)"
+      "Bash(set NO_PROXY=*)",
+      "Bash(done)"
     ]
   }
 }
