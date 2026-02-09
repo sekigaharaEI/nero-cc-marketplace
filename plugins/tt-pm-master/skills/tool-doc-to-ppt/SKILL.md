@@ -1,4 +1,5 @@
 ---
+name: tool-doc-to-ppt
 description: 将本地文档自动上传到 Google NotebookLM 并生成幻灯片 PDF。当用户说"生成幻灯片"、"文档转PPT"、"做个演示文档"时触发。支持 PDF、Word、Markdown、文本文件等格式。开箱即用，自动检查并安装依赖。支持 Windows/macOS/Linux。
 ---
 

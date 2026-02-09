@@ -1,4 +1,5 @@
 ---
+name: tool-restore-session
 description: 恢复项目上下文记忆。当 AI 助手启动新会话、切换设备或检测到对项目背景模糊时，必须使用此技能。
 ---
 # 项目记忆恢复 Skill

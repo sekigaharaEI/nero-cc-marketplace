@@ -1,4 +1,5 @@
 ---
+name: pm-plan-business-model
 description: 生成针对总经理汇报的新项目商业模式规划方案。当用户需要做商业模式规划、设计新产品盈利模式、写商业计划书时使用。
 allowed-tools: Write, Edit, Read, Glob, Grep, WebSearch, WebFetch
 ---

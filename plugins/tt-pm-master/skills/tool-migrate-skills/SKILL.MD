@@ -1,4 +1,5 @@
 ---
+name: tool-migrate-skills
 description: 迁移 Claude Skills 到 Agent Workflows
 ---
 

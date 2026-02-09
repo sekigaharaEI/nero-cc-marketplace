@@ -1,4 +1,5 @@
 ---
+name: pm-analyze-competitor
 description: 根据APP截图反向分析产品功能、商业模式及资源投入，包含缺失截图自动追问机制
 allowed-tools: Write, Edit, Read, Glob, Grep, WebSearch, WebFetch
 ---

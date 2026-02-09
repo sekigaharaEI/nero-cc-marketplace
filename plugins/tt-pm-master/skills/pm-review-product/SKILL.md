@@ -1,5 +1,6 @@
 ---
-description: 模拟“产品评审委员会”（体验、技术、运营、产品四方会审），对产品方案进行深度评审并输出毒辣报告
+name: pm-review-product
+description: 模拟"产品评审委员会"（体验、技术、运营、产品四方会审），对产品方案进行深度评审并输出毒辣报告
 ---
 
 # 产品方案评审委员会 (Product Review Board)

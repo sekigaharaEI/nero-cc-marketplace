@@ -1,4 +1,5 @@
 ---
+name: tool-archive-session
 description: 会话进度存档。当结束一次工作、准备关闭会话或完成重大阶段性任务时，必须通过此技能将状态写入持久化文档。
 ---
 # 会话进度存档 Skill

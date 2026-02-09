@@ -1,4 +1,5 @@
 ---
+name: tool-write-long-text
 description: 分块写入超长文本文件（超过8000字）。当需要创建长文档、生成大量内容、写入长篇文章、创建长代码文件时使用。避免因单次输出token限制导致的写入失败。
 allowed-tools: Write, Edit, Read
 ---
