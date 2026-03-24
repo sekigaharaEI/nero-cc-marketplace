@@ -63,6 +63,22 @@
         "automation",
         "productivity"
       ]
+    },
+    {
+      "name": "tmux-pane-router",
+      "source": "./plugins/tmux-pane-router",
+      "description": "Tmux三分屏路由器 - 自动将 Bash 命令路由到右上 pane 执行，将 Agent 活动展示到右下 pane，让 Claude Code 操作一目了然。",
+      "version": "1.0.0",
+      "tags": [
+        "tmux",
+        "layout",
+        "pane",
+        "router",
+        "bash",
+        "agent",
+        "productivity",
+        "terminal"
+      ]
     }
   ]
 }
