@@ -91,10 +91,18 @@ fi
 | 参数 | 用途 | 示例 |
 |------|------|------|
 | `-p "prompt"` | 非交互模式，执行单次任务 | `claude -p "实现缓存模块"` |
-| `--name "name"` | 为会话命名，便于后续接续 | `claude -p "..." --name "cache-module"` |
-| `-r "name"` | 接续已有命名会话，保留完整上下文 | `claude -r "cache-module" -p "修复测试失败"` |
+| `--name "name"` | 为会话设置显示名（便于识别） | `claude -p "..." --name "cache-module"` |
+| `--session-id <uuid>` | 指定 session ID 创建会话（便于后续接续） | `claude -p "..." --session-id "<uuid>"` |
+| `--resume <uuid>` | 接续已有会话（需 UUID，`-p` 模式下不支持 name） | `claude --resume "<uuid>" -p "修复测试失败"` |
 
-**命名规范**：`<任务类型>-<简述>`，如 `feat-cache-module`、`fix-auth-bug`、`refactor-user-service`
+**接续工作流**：
+1. 首次调用前用 `python3 -c 'import uuid; print(uuid.uuid4())'` 生成 session ID
+2. 传入 `--session-id` + `--name` 创建可接续的命名会话
+3. session ID 持久化到 tmux 环境变量，供后续取回
+4. 接续时用 `--resume <session-id>` + `-p` 恢复，子 Claude 保留完整上下文
+5. 命名规范：`<任务类型>-<简述>`，如 `feat-cache-module`、`fix-auth-bug`
+
+> 注意：`--resume <name>` 仅在交互模式下有效，`-p` 非交互模式必须使用 UUID。
 
 ### tmux 路由模式（在 Worker pane 中执行）
 
@@ -105,6 +113,7 @@ TARGET_PANE=<Worker pane ID>
 OUTFILE="/tmp/claude_$(date +%s).txt"
 TASK_SUMMARY="<2-4 词简述>"
 SESSION_NAME="<任务类型>-<简述>"  # 如 feat-cache-module
+SESSION_ID=$(python3 -c 'import uuid; print(uuid.uuid4())')             # 生成 UUID，供后续 --resume 接续
 
 # 检测 CLI
 CLAUDE_CMD=$(command -v claude-jty-yolo &>/dev/null && echo "claude-jty-yolo" || echo "claude")
@@ -113,22 +122,27 @@ CLAUDE_CMD=$(command -v claude-jty-yolo &>/dev/null && echo "claude-jty-yolo" ||
 tmux select-pane -t "$TARGET_PANE" -T "claude-${TASK_SUMMARY}"
 tmux select-pane -t "$TARGET_PANE" -P 'fg=colour208,bg=default'
 
-# 发送任务：使用 --name 创建命名会话
+# 持久化 session ID 到 tmux 环境变量，供后续接续使用
+tmux set-environment "CLAUDE_SESSION_${TARGET_PANE//[%.]/_}" "$SESSION_ID"
+
+# 发送任务：使用 --session-id + --name 创建可接续的命名会话
 tmux send-keys -t "$TARGET_PANE" \
   "cd <workdir> && \
    $CLAUDE_CMD -p \"$(cat <<'CLAUDE_PROMPT'
 [完整任务 prompt，见下方规范]
 CLAUDE_PROMPT
-)\" --name \"$SESSION_NAME\" > $OUTFILE 2>&1; \
+)\" --session-id \"$SESSION_ID\" --name \"$SESSION_NAME\" > $OUTFILE 2>&1; \
    tmux select-pane -t $TARGET_PANE -T 'Claude Worker'; \
    tmux select-pane -t $TARGET_PANE -P 'default'" Enter
 ```
 
 #### 接续调用（复用已有会话）
 
-验证失败或需要补充指令时，用 `-r` 接续同一会话，子 Claude 保留之前的完整上下文：
+验证失败或需要补充指令时，用 `-r <session-id>` 接续同一会话，子 Claude 保留之前的完整上下文：
 
 ```bash
+# 从 tmux 环境变量中取回 session ID
+SESSION_ID=$(tmux show-environment "CLAUDE_SESSION_${TARGET_PANE//[%.]/_}" 2>/dev/null | cut -d= -f2)
 OUTFILE="/tmp/claude_resume_$(date +%s).txt"
 
 tmux select-pane -t "$TARGET_PANE" -T "claude-${TASK_SUMMARY} (续)"
@@ -136,7 +150,7 @@ tmux select-pane -t "$TARGET_PANE" -P 'fg=colour208,bg=default'
 
 tmux send-keys -t "$TARGET_PANE" \
   "cd <workdir> && \
-   $CLAUDE_CMD -r \"$SESSION_NAME\" -p \"$(cat <<'CLAUDE_PROMPT'
+   $CLAUDE_CMD --resume \"$SESSION_ID\" -p \"$(cat <<'CLAUDE_PROMPT'
 [增量指令：修复什么问题、补充什么上下文]
 CLAUDE_PROMPT
 )\" > $OUTFILE 2>&1; \
@@ -150,17 +164,18 @@ CLAUDE_PROMPT
 
 ```bash
 CLAUDE_CMD=$(command -v claude-jty-yolo &>/dev/null && echo "claude-jty-yolo" || echo "claude")
+SESSION_ID=$(python3 -c 'import uuid; print(uuid.uuid4())')
 
 # 首次调用
 cd /absolute/path/to/workdir && \
   $CLAUDE_CMD -p "$(cat <<'CLAUDE_PROMPT'
 [完整任务 prompt，见下方规范]
 CLAUDE_PROMPT
-)" --name "<session-name>"
+)" --session-id "$SESSION_ID" --name "<session-name>"
 
-# 接续调用
+# 接续调用（使用同一个 SESSION_ID）
 cd /absolute/path/to/workdir && \
-  $CLAUDE_CMD -r "<session-name>" -p "增量指令"
+  $CLAUDE_CMD --resume "$SESSION_ID" -p "增量指令"
 ```
 
 **工作目录必须与当前项目目录一致**，通过 `cd` 切换后再调用。
@@ -241,7 +256,7 @@ cd /absolute/path/to/workdir && \
 |---|---|---|
 | 底层模型 | Claude (Sonnet/Opus) | gpt-5.3-codex |
 | 推理能力 | 完整推理 + 工具调用 | 擅长代码生成 |
-| 会话接续 | ✓ `--name` 命名 + `-r` 接续 | ✗ 无状态（可 `resume --last`） |
+| 会话接续 | ✓ `--session-id` 创建 + `--resume` 接续 | ✗ 无状态（可 `resume --last`） |
 | 上下文理解 | 可读 CLAUDE.md、理解项目结构 | 需要在 prompt 中给足上下文 |
 | pane 文字色 | 橙色（colour208） | 淡蓝（colour117） |
 | pane 标题前缀 | `claude-` | `codex-` |
