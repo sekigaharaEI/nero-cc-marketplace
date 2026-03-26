@@ -10,17 +10,17 @@ description: |
 
 # claude-exec
 
-Claude Code CLI 实例是**无状态的一次性代码执行者**，具备完整推理能力。主 Claude 是**规划者与管理者**，用户只与主 Claude 交互，子 Claude 调用是内部过程。
+Claude Code CLI 实例具备完整推理能力，支持**命名会话**和**接续对话**。主 Claude 是**规划者与管理者**，用户只与主 Claude 交互，子 Claude 调用是内部过程。
 
 ## 核心原则
 
 **① 主 Claude 必须亲自验证**（最重要）：子 Claude 自报"完成"不可信。每次调用后，主 Claude 独立运行验证命令确认结果。
 
-**② 子 Claude 无记忆**：每次调用必须在 prompt 中提供完整上下文（项目 CLAUDE.md、参考文件路径、接口规范、约束）。
+**② 命名会话，按需接续**：使用 `--name` 为每个子任务创建命名会话，后续可通过 `-r` 接续同一会话，子 Claude 保留完整上下文。首次调用仍需提供完整上下文，接续时只需补充增量指令。
 
 **③ 给足上下文但不替他写代码**：传递接口定义、参考文件路径和项目规范，让子 Claude 自主实现。
 
-**④ 失败重试上限**：同一问题连续失败 2 次后，第 3 次主 Claude 接管自行修复。
+**④ 失败重试上限**：同一问题连续失败 2 次后，第 3 次主 Claude 接管自行修复。接续模式下可先尝试 `-r` 补充上下文让子 Claude 自行修复。
 
 **⑤ 只汇报结果**：向用户呈现最终摘要，不暴露子 Claude 调用细节。
 
@@ -86,12 +86,25 @@ fi
 
 ## 调用命令
 
+### 会话管理
+
+| 参数 | 用途 | 示例 |
+|------|------|------|
+| `-p "prompt"` | 非交互模式，执行单次任务 | `claude -p "实现缓存模块"` |
+| `--name "name"` | 为会话命名，便于后续接续 | `claude -p "..." --name "cache-module"` |
+| `-r "name"` | 接续已有命名会话，保留完整上下文 | `claude -r "cache-module" -p "修复测试失败"` |
+
+**命名规范**：`<任务类型>-<简述>`，如 `feat-cache-module`、`fix-auth-bug`、`refactor-user-service`
+
 ### tmux 路由模式（在 Worker pane 中执行）
+
+#### 首次调用（新建命名会话）
 
 ```bash
 TARGET_PANE=<Worker pane ID>
 OUTFILE="/tmp/claude_$(date +%s).txt"
 TASK_SUMMARY="<2-4 词简述>"
+SESSION_NAME="<任务类型>-<简述>"  # 如 feat-cache-module
 
 # 检测 CLI
 CLAUDE_CMD=$(command -v claude-jty-yolo &>/dev/null && echo "claude-jty-yolo" || echo "claude")
@@ -100,11 +113,31 @@ CLAUDE_CMD=$(command -v claude-jty-yolo &>/dev/null && echo "claude-jty-yolo" ||
 tmux select-pane -t "$TARGET_PANE" -T "claude-${TASK_SUMMARY}"
 tmux select-pane -t "$TARGET_PANE" -P 'fg=colour208,bg=default'
 
-# 发送任务：执行完毕后自动恢复标题和颜色
+# 发送任务：使用 --name 创建命名会话
 tmux send-keys -t "$TARGET_PANE" \
   "cd <workdir> && \
    $CLAUDE_CMD -p \"$(cat <<'CLAUDE_PROMPT'
 [完整任务 prompt，见下方规范]
+CLAUDE_PROMPT
+)\" --name \"$SESSION_NAME\" > $OUTFILE 2>&1; \
+   tmux select-pane -t $TARGET_PANE -T 'Claude Worker'; \
+   tmux select-pane -t $TARGET_PANE -P 'default'" Enter
+```
+
+#### 接续调用（复用已有会话）
+
+验证失败或需要补充指令时，用 `-r` 接续同一会话，子 Claude 保留之前的完整上下文：
+
+```bash
+OUTFILE="/tmp/claude_resume_$(date +%s).txt"
+
+tmux select-pane -t "$TARGET_PANE" -T "claude-${TASK_SUMMARY} (续)"
+tmux select-pane -t "$TARGET_PANE" -P 'fg=colour208,bg=default'
+
+tmux send-keys -t "$TARGET_PANE" \
+  "cd <workdir> && \
+   $CLAUDE_CMD -r \"$SESSION_NAME\" -p \"$(cat <<'CLAUDE_PROMPT'
+[增量指令：修复什么问题、补充什么上下文]
 CLAUDE_PROMPT
 )\" > $OUTFILE 2>&1; \
    tmux select-pane -t $TARGET_PANE -T 'Claude Worker'; \
@@ -118,11 +151,16 @@ CLAUDE_PROMPT
 ```bash
 CLAUDE_CMD=$(command -v claude-jty-yolo &>/dev/null && echo "claude-jty-yolo" || echo "claude")
 
+# 首次调用
 cd /absolute/path/to/workdir && \
   $CLAUDE_CMD -p "$(cat <<'CLAUDE_PROMPT'
 [完整任务 prompt，见下方规范]
 CLAUDE_PROMPT
-)"
+)" --name "<session-name>"
+
+# 接续调用
+cd /absolute/path/to/workdir && \
+  $CLAUDE_CMD -r "<session-name>" -p "增量指令"
 ```
 
 **工作目录必须与当前项目目录一致**，通过 `cd` 切换后再调用。
@@ -174,13 +212,14 @@ CLAUDE_PROMPT
 ```
 对每个子任务：
 
-  1. 构建 prompt（五要素）
+  1. 构建 prompt（五要素）+ 生成 session name
      → 检测 CLI：claude-jty-yolo 存在？
        ├── 是 → 使用 claude-jty-yolo（自带认证+权限）
        └── 否 → 使用原生 claude
      → 检测环境：$TMUX 非空 且 Worker pane 存在？
        ├── 是 → 设置 pane 标题和文字色为橙色，tmux 路由模式执行
        └── 否 → 直连模式执行
+     → 首次调用使用 -p + --name，创建命名会话
 
   2. 读取输出：
      ├── 输出正常 → 直接读取
@@ -188,7 +227,7 @@ CLAUDE_PROMPT
 
   3. 主 Claude 亲自运行验证命令（不信任子 Claude 自报）：
      ├── 通过 → git add <具体文件> && git commit → 下一子任务
-     └── 失败一次 → 分析原因，补充上下文，重新调用
+     └── 失败一次 → 用 -r 接续同一会话，补充错误信息让子 Claude 修复
            └── 失败两次（同一问题）→ 主 Claude 接管直接修复
 
 全部子任务完成 → 向用户汇报摘要
@@ -202,10 +241,11 @@ CLAUDE_PROMPT
 |---|---|---|
 | 底层模型 | Claude (Sonnet/Opus) | gpt-5.3-codex |
 | 推理能力 | 完整推理 + 工具调用 | 擅长代码生成 |
+| 会话接续 | ✓ `--name` 命名 + `-r` 接续 | ✗ 无状态（可 `resume --last`） |
 | 上下文理解 | 可读 CLAUDE.md、理解项目结构 | 需要在 prompt 中给足上下文 |
 | pane 文字色 | 橙色（colour208） | 淡蓝（colour117） |
 | pane 标题前缀 | `claude-` | `codex-` |
-| 适用场景 | 跨文件重构、复杂功能、需要判断力 | 纯算法、单模块实现、API handler |
+| 适用场景 | 跨文件重构、复杂功能、多轮迭代 | 纯算法、单模块实现、API handler |
 | 超时 | 较长（180s~600s） | 较短（120s~300s） |
 
 ---
