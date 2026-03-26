@@ -55,7 +55,8 @@
 | 长程命令（构建/测试/服务启动） | 右上 Pane B |
 | 写超长文本（> 3000字） | 右上 Pane B |
 | 启动 subagent | 右上 Pane B |
-| 调用 Codex | 右下 Pane C |
+| 调用 Codex | 右下 Pane C（淡蓝文字 + 标题自动更新） |
+| 需要并行执行多个子任务 | parallel-dispatch 多 Worker 布局 |
 
 ## 配置说明
 
@@ -68,6 +69,14 @@
 - 鼠标支持已开启
 - 关闭自动重命名（保持 pane 标题稳定）
 
+## Skills
+
+| Skill | 触发时机 |
+|-------|---------|
+| `tmux-layout` | 自动：长程命令/subagent/Codex 调用前；手动：`/tmux-layout` |
+| `codex-exec` | 自动：用户说「实现/写一个/重构」时；在 tmux 右下 Pane C 执行，淡蓝文字 + 标题自动更新 |
+| `parallel-dispatch` | 自动：需要并行执行多个独立子任务时；多 Worker pane 并行，霓虹色区分，实时标题监控 |
+
 ## 版本历史
 
-- `v1.0.0` - 基础原子能力：tmux 配置安装、手动布局建立、自动任务路由
+- `v1.0.0` - 基础原子能力：tmux 配置安装、手动布局建立、自动任务路由、Codex 联动、并行调度
