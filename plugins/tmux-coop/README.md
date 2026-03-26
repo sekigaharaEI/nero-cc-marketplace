@@ -2,6 +2,8 @@
 
 **Tmux 协作指挥官** — 基于 tmux 的多智能体协作布局插件。内置 tmux 配置、三栏分工布局与任务自动路由，让 Claude 主流程、长程任务、Codex 各司其职。
 
+![tmux-coop 多面板协作](../../docs/tmux-coop/assets/tmux-panel.png)
+
 ## 功能特性
 
 - **一键初始化**：自动安装 tmux 配置、备份原有配置、热加载
