@@ -129,6 +129,16 @@ tmux select-pane -t ${SESSION}:0.4 -T "Worker4 待分配"
 
 ## 第三步：下发任务
 
+Worker pane 支持三种执行器，根据任务类型选择：
+
+| 执行器 | 适用场景 | 参考 skill |
+|--------|---------|-----------|
+| Shell 命令 | 批量跑脚本、测试、数据处理 | 本 skill 直接下发 |
+| `codex-exec` | 纯算法/单模块实现、API handler | `skills/codex-exec/SKILL.md` |
+| `claude-exec` | 跨文件重构、需要推理和上下文理解的编码 | `skills/claude-exec/SKILL.md` |
+
+### Shell 命令下发（默认）
+
 **命令格式规范**（较复杂的任务优先写成独立 `/tmp/<task>.py` 文件再执行）：
 
 ```bash
@@ -136,6 +146,31 @@ tmux send-keys -t ${SESSION}:0.1 \
   "source /path/.venv/bin/activate && python /tmp/task1.py 2>&1 | tee /tmp/task1.log" \
   Enter
 ```
+
+### Codex 执行器下发
+
+```bash
+tmux send-keys -t ${SESSION}:0.1 \
+  "cd <workdir> && \
+   HTTPS_PROXY=http://127.0.0.1:7890 HTTP_PROXY=http://127.0.0.1:7890 \
+   timeout <秒数> codex exec --full-auto \
+   --sandbox danger-full-access \
+   --model gpt-5.3-codex \
+   '<prompt>' > /tmp/codex_task1.log 2>&1" Enter
+```
+
+### Claude 执行器下发
+
+```bash
+# 检测 CLI（优先 claude-jty-yolo alias）
+CLAUDE_CMD=$(bash -ic 'command -v claude-jty-yolo &>/dev/null && echo claude-jty-yolo || echo claude')
+
+tmux send-keys -t ${SESSION}:0.1 \
+  "cd <workdir> && \
+   $CLAUDE_CMD -p '<prompt>' > /tmp/claude_task1.log 2>&1" Enter
+```
+
+> 详细的 prompt 规范和执行循环见各自的 skill 文档。
 
 命令必须包含：
 1. 激活虚拟环境（如需要）

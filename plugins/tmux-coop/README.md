@@ -74,8 +74,9 @@
 | Skill | 触发时机 |
 |-------|---------|
 | `tmux-layout` | 自动：长程命令/subagent/Codex 调用前；手动：`/tmux-layout` |
-| `codex-exec` | 自动：用户说「实现/写一个/重构」时；在 tmux 右下 Pane C 执行，淡蓝文字 + 标题自动更新 |
-| `parallel-dispatch` | 自动：需要并行执行多个独立子任务时；多 Worker pane 并行，霓虹色区分，实时标题监控 |
+| `codex-exec` | 自动：用户说「实现/写一个/重构」时；在 tmux pane 中执行，淡蓝文字 + 标题 `codex-<简述>` |
+| `claude-exec` | 自动：需要 Claude 推理能力的编码任务；在 tmux pane 中执行，橙色文字 + 标题 `claude-<简述>` |
+| `parallel-dispatch` | 自动：需要并行执行多个独立子任务时；支持 Shell/Codex/Claude 三种执行器 |
 
 ## 版本历史
 
