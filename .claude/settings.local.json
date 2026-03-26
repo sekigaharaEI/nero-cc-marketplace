@@ -26,7 +26,9 @@
       "Bash(cat:*)",
       "Bash(pip install:*)",
       "Bash(set NO_PROXY=*)",
-      "Bash(done)"
+      "Bash(done)",
+      "Skill(feishu-bridge:feishu-send-notification)",
+      "Skill(feishu-bridge:feishu-send-notification:*)"
     ]
   }
 }
