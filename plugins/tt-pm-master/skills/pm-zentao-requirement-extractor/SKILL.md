@@ -1,4 +1,4 @@
-﻿---
+---
 name: pm-zentao-requirement-extractor
 description: 从禅道产品浏览地址或产品 ID 中批量提取 story/研发需求，导出为可分析的 Markdown 文件，并保留需求详情、截图链接与关键字段。适用于需要抓取禅道研发需求详情、批量导出某产品下全部需求、保留 `spec` 或源 Bug `steps` 中截图、或将需求落盘到指定目录后继续分析的场景。
 ---
@@ -86,10 +86,13 @@ GET /bugs/<bug_id>
    - 如果用户给的是 `product-browse-131-...` 这类地址，就从 URL 中解析产品 ID。
    - 同时把原始页面地址写入输出文件头部，作为来源说明。
 2. 如果用户给的是“目录”而不是完整文件名，优先使用 `--output-dir`，让脚本自动命名文件。
-3. 执行附带脚本做全量导出：
+3. 执行附带脚本做全量导出。
+   - 先把 `<skill_dir>` 替换成当前 skill 的实际目录，例如：
+     - `F:\Document\Project\ai-config\.codex\skills\tt-pm-master\pm-zentao-requirement-extractor`
+     - `C:\Users\Administrator\.codex\skills\tt-pm-master\pm-zentao-requirement-extractor`
 
 ```powershell
-python "C:\Users\Teacher Tui\.codex\skills\pm-zentao-requirement-extractor\scripts\export_zentao_requirements.py" `
+python "<skill_dir>\scripts\export_zentao_requirements.py" `
   --browse-url "http://your-zentao-host/zentao/product-browse-131---0-story--134-20-1-0.html" `
   --output-dir "F:\path\to\folder"
 ```
@@ -97,7 +100,7 @@ python "C:\Users\Teacher Tui\.codex\skills\pm-zentao-requirement-extractor\scrip
 4. 如果用户只给了产品 ID，则执行：
 
 ```powershell
-python "C:\Users\Teacher Tui\.codex\skills\pm-zentao-requirement-extractor\scripts\export_zentao_requirements.py" `
+python "<skill_dir>\scripts\export_zentao_requirements.py" `
   --product-id 131 `
   --output "F:\path\to\禅道_研发需求_字段提取.md"
 ```
@@ -105,7 +108,7 @@ python "C:\Users\Teacher Tui\.codex\skills\pm-zentao-requirement-extractor\scrip
 5. 如果只是想先看样本，使用 `--max-items`：
 
 ```powershell
-python "C:\Users\Teacher Tui\.codex\skills\pm-zentao-requirement-extractor\scripts\export_zentao_requirements.py" `
+python "<skill_dir>\scripts\export_zentao_requirements.py" `
   --product-id 131 `
   --max-items 3 `
   --output "F:\path\to\sample.md"
