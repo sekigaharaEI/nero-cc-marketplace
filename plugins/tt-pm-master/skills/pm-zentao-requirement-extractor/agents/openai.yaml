@@ -1,0 +1,7 @@
+﻿interface:
+  display_name: "pm-zentao-requirement-extractor"
+  short_description: "从产品URL或产品ID批量导出禅道研发需求详情、截图与关键字段"
+  default_prompt: "使用 $pm-zentao-requirement-extractor 从禅道产品 URL 或产品 ID 批量提取研发需求，并导出为保留截图的 Markdown 文件。"
+
+policy:
+  allow_implicit_invocation: true
