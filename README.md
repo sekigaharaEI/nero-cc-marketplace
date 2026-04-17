@@ -4,31 +4,122 @@
 
 ## 快速开始
 
-### 添加 Marketplace
+### Claude Code
+
+#### GitHub 公网
+
+1. 克隆仓库：
 
 ```bash
-/plugin marketplace add sekigaharaEI/nero-cc-marketplace
+git clone https://github.com/sekigaharaEI/nero-cc-marketplace.git
 ```
 
-### 添加 Marketplace（jty内网）
+2. 进入仓库目录：
 
 ```bash
-# 需要开通jty git账号
-
-/plugin marketplace add http://username:password@192.168.4.93/zyw23973/jtyjy-cc-marketplace.git
+cd nero-cc-marketplace
 ```
 
-### 查看可用插件
+3. 添加 Marketplace：
+
+```bash
+/plugin marketplace add .
+```
+
+4. 安装插件：
+
+```bash
+/plugin install tt-pm-master@nero-cc-marketplace
+```
+
+#### jty 内网
+
+1. 克隆仓库：
+
+```bash
+git clone http://username:password@192.168.4.93/zyw23973/jtyjy-cc-marketplace.git
+```
+
+2. 进入仓库目录：
+
+```bash
+cd jtyjy-cc-marketplace
+```
+
+3. 添加 Marketplace：
+
+```bash
+/plugin marketplace add .
+```
+
+4. 安装插件：
+
+```bash
+/plugin install tt-pm-master@nero-cc-marketplace
+```
+
+#### 查看可用插件
 
 ```bash
 /plugin list --marketplace nero-cc-marketplace
 ```
 
-### 安装插件
+### Codex
+
+#### GitHub 公网
+
+1. 克隆仓库：
 
 ```bash
-/plugin install {plugin-name}@nero-cc-marketplace
+git clone https://github.com/sekigaharaEI/nero-cc-marketplace.git
 ```
+
+2. 进入仓库目录：
+
+```bash
+cd nero-cc-marketplace
+```
+
+3. 启动 Codex 并打开插件目录：
+
+```bash
+codex
+/plugins
+```
+
+4. 在插件列表中选择下述插件目录中的插件名并安装。
+
+5. 如果你更新了 marketplace 或插件文件，重启 Codex 让变更生效。
+
+#### jty 内网
+
+1. 克隆仓库：
+
+```bash
+git clone http://username:password@192.168.4.93/zyw23973/jtyjy-cc-marketplace.git
+```
+
+2. 进入仓库目录：
+
+```bash
+cd jtyjy-cc-marketplace
+```
+
+3. 启动 Codex 并打开插件目录：
+
+```bash
+codex
+/plugins
+```
+
+4. 在插件列表中选择下述插件目录中的插件名并安装。
+
+5. 如果你更新了 marketplace 或插件文件，重启 Codex 让变更生效。
+
+Codex 会从 [`.agents/plugins/marketplace.json`](./.agents/plugins/marketplace.json) 读取插件目录。
+
+#### 查看插件目录
+在 Codex CLI 中运行 `/plugins` 即可查看当前仓库暴露的插件。
 
 ## 开发规范
 
@@ -38,12 +129,14 @@
 
 ## 可用插件
 
-| 插件名称                                   | 版本  | 描述                                        |
-| ------------------------------------------ | ----- | ------------------------------------------- |
-| [memory-stalker](./plugins/memory-stalker/)   | 1.0.6 | 记忆追猎者 - 智能压缩、可溯源存储、接续对话 |
-| [tt-pm-master](./plugins/tt-pm-master/) | 1.0.5 | Teacher Tui产品经理大师 - 专业的产品经理工具集，Claude/Codex 基础双栈兼容 |
-| [tmux-coop](./plugins/tmux-coop/) | 1.0.0 | Tmux 协作指挥官 - 多智能体协作布局，三栏分工、任务路由 |
-| [feishu-bridge](./plugins/feishu-bridge/) | 1.0.3 | 飞书消息桥 - 通过飞书开放平台发送私聊通知消息 |
+| 插件名称 | 版本 | Claude Code | Codex | 描述 |
+| --- | --- | --- | --- | --- |
+| [memory-stalker](./plugins/memory-stalker/) | 1.0.6 | ✅ | ❌ | 记忆追猎者 - 智能压缩、可溯源存储、接续对话 |
+| [tt-pm-master](./plugins/tt-pm-master/) | 1.0.5 | ✅ | ✅ | Teacher Tui产品经理大师 - 专业的产品经理工具集，Claude/Codex 基础双栈兼容 |
+| [tmux-coop](./plugins/tmux-coop/) | 1.0.0 | ✅ | ❌ | Tmux 协作指挥官 - 多智能体协作布局，三栏分工、任务路由 |
+| [feishu-bridge](./plugins/feishu-bridge/) | 1.0.3 | ✅ | ❌ | 飞书消息桥 - 通过飞书开放平台发送私聊通知消息 |
+
+表中 `✅` 表示该插件当前在对应平台可用，`❌` 表示当前未做该平台兼容。
 
 ## 插件详情
 
@@ -107,7 +200,8 @@ Teacher Tui产品经理大师 - 专业的产品经理工具集，以 Teacher Tui
 
 **Codex:**
 
-- 通过本仓库的 `.agents/plugins/marketplace.json` 暴露给 Codex
+- 打开 Codex 的 `/plugins` 插件目录
+- 选择 `tt-pm-master` 并安装
 - 复用同一套 `skills/` 作为插件主体
 - `tt-nanoBanana` 当前仍为 Claude-only
 
