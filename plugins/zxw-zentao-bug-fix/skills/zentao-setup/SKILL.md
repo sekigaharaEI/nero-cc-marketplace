@@ -23,11 +23,19 @@ description: 当 Codex 需要初始化当前项目的禅道工作环境时使用
 - `ZENTAO_ACCOUNT`
 - `ZENTAO_PASSWORD`
 
+字段说明：
+
+- `project_id`：当前 bug 所属的禅道项目 ID，用于定位本项目的 bug 范围。
+- `human_owner`：个人姓名，用于拉 bug、确认修复和回写时识别名字。
+- `ZENTAO_BASE_URL`：禅道基础地址，默认填写 `http://192.168.4.158:81/zentao/`。
+- `ZENTAO_ACCOUNT`：禅道登录账号。
+- `ZENTAO_PASSWORD`：禅道登录密码。
+
 ## 执行流程
 
 1. 确认当前工作目录是目标项目仓库，而不是插件源码仓库。
-2. 运行 `scripts/setup_zentao.py` 或等价初始化命令。
-3. 收集禅道连接信息和当前项目身份信息。
+2. 首次使用时，必须先运行 `scripts/setup_zentao.py` 或等价初始化命令。
+3. 收集并确认禅道连接信息和当前项目身份信息。
 4. 把项目配置写入 `./.codex/zentao-bug-fix.yaml`。
 5. 把 `zentao` MCP 配置合并进本机 Codex 配置。
 6. 确认 `zentao-mcp` 使用的仍然是占位符模板之外的真实本地值。
@@ -38,6 +46,7 @@ description: 当 Codex 需要初始化当前项目的禅道工作环境时使用
 - 仓库里只保留占位符示例，不保存真实账号密码。
 - 初始化只改当前项目的 `.codex/zentao-bug-fix.yaml` 和本机 Codex 配置，不改插件核心技能。
 - 如果本机已有其他 Codex 配置，必须合并而不是覆盖。
+- 如果用户没有显式提供 `ZENTAO_BASE_URL`，优先按默认值 `http://192.168.4.158:81/zentao/` 填写。
 
 ## 输出要求
 

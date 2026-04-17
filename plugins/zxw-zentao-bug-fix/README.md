@@ -15,6 +15,20 @@
 - `zentao-bug-fix-by-id`：按 `bug_id` 处理单个 bug 并完成修复闭环
 - `zentao-setup`：初始化禅道连接、本地项目配置和当前项目身份信息
 
+## 首次使用
+
+第一次使用这个插件时，必须先运行 `zentao-setup` 完成初始化，再去查询 bug 或进入修复闭环。
+
+初始化时需要填写 5 个值：
+
+- `project_id`：当前 bug 所属的禅道项目 ID，用来定位本项目的 bug 范围。
+- `human_owner`：个人姓名，用于拉取 bug、确认修复和回写时识别责任人。
+- `ZENTAO_BASE_URL`：禅道地址，默认为 `http://192.168.4.158:81/zentao/`。
+- `ZENTAO_ACCOUNT`：禅道登录账号。
+- `ZENTAO_PASSWORD`：禅道登录密码。
+
+`zentao-setup` 会把这些信息写入当前项目的 `./.codex/zentao-bug-fix.yaml`，并把 `zentao-mcp` 配置合并到本机 Codex 配置中。
+
 ## 安装
 
 1. 克隆仓库：
@@ -41,16 +55,6 @@ codex
 5. 安装后，先运行 `zentao-setup`，完成当前项目和禅道连接初始化。
 
 ## 初始化
-
-`zentao-setup` 会让你填写：
-
-- `human_owner`
-- `project_id`
-- `ZENTAO_BASE_URL`
-- `ZENTAO_ACCOUNT`
-- `ZENTAO_PASSWORD`
-
-它会把项目上下文写入当前项目的 `./.codex/zentao-bug-fix.yaml`，并把 `zentao-mcp` 配置合并到本机 Codex 配置中。
 
 如果你想先看占位符模板，可以直接参考：
 
