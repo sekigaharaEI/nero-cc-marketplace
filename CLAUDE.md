@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is a personal Claude Code plugin marketplace (`nero-cc-marketplace`) that hosts and distributes custom Claude Code plugins. The repository contains two main plugins:
 
 1. **memory-stalker** (v1.0.6) - Memory management plugin with intelligent compression, traceable storage, and conversation resumption
-2. **tt-pm-master** (v1.0.2) - Product manager toolkit with competitor analysis, PRD writing, business model planning, and NotebookLM integration
+2. **tt-pm-master** (v1.0.5) - Product manager toolkit with competitor analysis, PRD writing, business model planning, NotebookLM integration, and dual-stack Claude/Codex compatibility
 
 ## Architecture
 
@@ -57,6 +57,9 @@ Each plugin follows the Claude Code plugin structure:
 - Skills: Complex multi-step workflows with their own subdirectories
 
 ## Development Workflow
+
+Primary workflow reference for all plugin work:
+- [Dual-stack development workflow](./dev_workflow.md)
 
 ### Adding a New Plugin
 

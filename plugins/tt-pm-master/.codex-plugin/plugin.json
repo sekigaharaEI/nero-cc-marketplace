@@ -1,0 +1,27 @@
+{
+  "name": "tt-pm-master",
+  "version": "1.0.5",
+  "description": "Teacher Tui产品经理大师 - 专业的产品经理工具集，支持竞品分析、PRD 撰写、商业模式规划、产品评审、NotebookLM 集成和文档转幻灯片工作流。",
+  "author": {
+    "name": "Teacher Tui"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/sekigaharaEI/nero-cc-marketplace",
+  "keywords": [
+    "product-manager",
+    "prd",
+    "competitor-analysis",
+    "business-model",
+    "product-review",
+    "app-analysis",
+    "productivity"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Teacher Tui产品经理大师",
+    "shortDescription": "产品经理工作流集合",
+    "longDescription": "面向产品经理的基础双栈插件，复用同一套 skills 提供大部分 PM 工作流；个别依赖 Claude 本地路径的技能会单独标注。",
+    "developerName": "Teacher Tui",
+    "category": "Productivity"
+  }
+}

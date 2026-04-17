@@ -1,0 +1,20 @@
+{
+  "name": "nero-cc-marketplace",
+  "interface": {
+    "displayName": "Nero's Codex Marketplace"
+  },
+  "plugins": [
+    {
+      "name": "tt-pm-master",
+      "source": {
+        "source": "local",
+        "path": "./plugins/tt-pm-master"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
