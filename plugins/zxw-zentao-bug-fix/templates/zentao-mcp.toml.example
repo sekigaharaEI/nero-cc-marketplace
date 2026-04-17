@@ -1,0 +1,9 @@
+[mcp_servers.zentao]
+command = "npx"
+args = ["-y", "zentao-mcp"]
+
+[mcp_servers.zentao.env]
+ZENTAO_BASE_URL = "http://your-zentao-host/zentao/"
+ZENTAO_ACCOUNT = "your-account"
+ZENTAO_PASSWORD = "your-password"
+MCP_ENABLE_WRITE_TOOLS = "true"

@@ -1,6 +1,6 @@
 # Nero's Claude Code Marketplace
 
-个人的 Claude Code 插件市场，用于存放和分发自己开发的各种 Claude Code 插件。
+个人的 Claude Code / Codex 插件市场，用于存放和分发自己开发的各种插件。
 
 ## 快速开始
 
@@ -133,6 +133,7 @@ Codex 会从 [`.agents/plugins/marketplace.json`](./.agents/plugins/marketplace.
 | --- | --- | --- | --- | --- |
 | [memory-stalker](./plugins/memory-stalker/) | 1.0.6 | ✅ | ❌ | 记忆追猎者 - 智能压缩、可溯源存储、接续对话 |
 | [tt-pm-master](./plugins/tt-pm-master/) | 1.0.5 | ✅ | ✅ | Teacher Tui产品经理大师 - 专业的产品经理工具集，Claude/Codex 基础双栈兼容 |
+| [zxw-zentao-bug-fix](./plugins/zxw-zentao-bug-fix/) | 0.1.0 | ❌ | ✅ | 禅道 Bug 闭环插件 - 纯 Codex，复用现成 zentao-mcp，支持 setup 初始化 |
 | [tmux-coop](./plugins/tmux-coop/) | 1.0.0 | ✅ | ❌ | Tmux 协作指挥官 - 多智能体协作布局，三栏分工、任务路由 |
 | [feishu-bridge](./plugins/feishu-bridge/) | 1.0.3 | ✅ | ❌ | 飞书消息桥 - 通过飞书开放平台发送私聊通知消息 |
 
@@ -219,6 +220,43 @@ Teacher Tui产品经理大师 - 专业的产品经理工具集，以 Teacher Tui
 ```
 
 [查看详细文档](./plugins/tt-pm-master/README.md)
+
+### zxw-zentao-bug-fix
+
+禅道 Bug 闭环插件，复用现成 `zentao-mcp`，提供 bug 列表查询、按 `bug_id` 修复闭环和本地 `setup` 初始化工作流。
+
+**功能特性:**
+
+- 🐞 bug 列表查询：按条件拉取禅道候选 bug
+- 🔧 单 bug 修复闭环：按 `bug_id` 进入确认、修改、验证、回写流程
+- 🧭 setup 初始化：写入当前项目 `project_id`、`human_owner` 和本机 `zentao` MCP 配置
+- 📦 纯 Codex：不提供 Claude 兼容层
+
+**安装:**
+
+```bash
+/plugins
+```
+
+在 Codex 的插件列表中选择 `zxw-zentao-bug-fix` 并安装，然后在目标项目仓库里运行 `zentao-setup`。
+
+**初始化:**
+
+```bash
+zentao-setup
+```
+
+初始化时会提示你填写：
+
+- `project_id`
+- `human_owner`
+- `ZENTAO_BASE_URL`
+- `ZENTAO_ACCOUNT`
+- `ZENTAO_PASSWORD`
+
+完成后会把项目上下文写入 `./.codex/zentao-bug-fix.yaml`，并把 `zentao-mcp` 合并到本机 Codex 配置中。
+
+[查看详细文档](./plugins/zxw-zentao-bug-fix/README.md)
 
 ### tmux-coop
 

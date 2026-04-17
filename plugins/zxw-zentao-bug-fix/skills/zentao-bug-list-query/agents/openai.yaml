@@ -1,0 +1,7 @@
+interface:
+  display_name: "zentao-bug-list-query"
+  short_description: "按条件查询禅道 bug 列表"
+  default_prompt: "使用 $zentao-bug-list-query 从禅道按条件查询 bug 列表，并输出候选清单。"
+
+policy:
+  allow_implicit_invocation: true

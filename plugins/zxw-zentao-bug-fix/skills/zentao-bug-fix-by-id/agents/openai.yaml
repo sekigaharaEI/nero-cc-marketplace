@@ -1,0 +1,7 @@
+interface:
+  display_name: "zentao-bug-fix-by-id"
+  short_description: "按 bug_id 处理单个禅道 bug"
+  default_prompt: "使用 $zentao-bug-fix-by-id 根据 bug_id 处理单个禅道 bug，并完成修复闭环。"
+
+policy:
+  allow_implicit_invocation: true

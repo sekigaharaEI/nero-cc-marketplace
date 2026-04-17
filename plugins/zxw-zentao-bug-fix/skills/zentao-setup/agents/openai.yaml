@@ -1,0 +1,7 @@
+interface:
+  display_name: "zentao-setup"
+  short_description: "初始化禅道工作环境与项目配置"
+  default_prompt: "使用 $zentao-setup 初始化当前项目的禅道 MCP、项目配置和人工确认人。"
+
+policy:
+  allow_implicit_invocation: true

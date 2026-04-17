@@ -1,0 +1,44 @@
+# 项目配置规范
+
+项目配置只保留最小必填项，其余条件尽量在每次触发时提供。
+
+## 放置位置
+
+- `./.codex/zentao-bug-fix.yaml`
+
+## 最小配置
+
+```yaml
+project_id: 12
+human_owner: "张三"
+```
+
+## 字段说明
+
+- `project_id`：禅道项目 ID，用于定位当前项目的 bug 范围
+- `human_owner`：最终人工确认人，负责确认是否修复、确认修复清单、确认回写
+
+## 可选字段
+
+如果某个项目经常需要固定筛选条件，可以按需加这些字段，但不是必填：
+
+- `product_id`
+- `module_ids`
+- `bug_states`
+- `priorities`
+- `labels_include`
+- `labels_exclude`
+- `assignees`
+- `keywords`
+- `updated_since`
+- `limit`
+- `preferred_verification`
+- `auto_fix_max_files`
+- `auto_fix_max_lines`
+
+## 使用规则
+
+1. 先读本地项目配置。
+2. 如果存在 `bug_id`，优先处理单个 bug。
+3. 如果没有 `bug_id`，再结合这次触发时输入的条件做拉取。
+4. 本地配置只负责项目归属和人工确认人，不负责把所有筛选条件写死。
