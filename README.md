@@ -256,8 +256,7 @@ zentao-setup
 
 完成后会把项目上下文写入 `./.codex/zentao-bug-fix.yaml`，并把 `zentao-mcp` 合并到本机 Codex 配置中。
 
-[查看详细文档](./plugins/zxw-zentao-bug-fix/README.md)
-
+[查看详细文档](./plugins/zxw-zentao-bug-fix/README.md
 ### tmux-coop
 
 Tmux 协作指挥官 - 基于 tmux 的多智能体协作布局插件，内置配置与三栏分工，让 Claude 主流程、长程任务、Codex 各司其职。
