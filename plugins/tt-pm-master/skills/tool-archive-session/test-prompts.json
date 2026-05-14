@@ -1,0 +1,59 @@
+{
+  "_schema_note": "扩展结构：场景剧本而非单 prompt。本 skill 关注 archive 端——验证种子会话→锚点文件的保真度。",
+  "scenarios": [
+    {
+      "id": "A",
+      "name": "直线连续工作（baseline 保真测试）",
+      "seed_transcript": [
+        {"role": "user", "content": "我们今天聊「AI 时代的人脉」这个选题，先定 angle。"},
+        {"role": "assistant", "content": "三个候选角度：1）AI 让认识陌生人门槛变高；2）AI 替代弱关系；3）人脉的新货币是「能调用谁的 AI」。"},
+        {"role": "user", "content": "就用 1，AI 让认识陌生人门槛变高。列个大纲。"},
+        {"role": "assistant", "content": "大纲 5 段：引入 / 现象 / 原理 / 反共识 / 行动建议。"},
+        {"role": "user", "content": "第 3 段太啰嗦砍掉，保留 4 段。下一步你帮我写开头 250 字。"},
+        {"role": "assistant", "content": "[开头稿 250 字省略]"},
+        {"role": "user", "content": "开头可以，但「无声」那个词换成「沉默」。"},
+        {"role": "assistant", "content": "已替换。"},
+        {"role": "user", "content": "结束本次会话，帮我归档。"}
+      ],
+      "archive_expectations": {
+        "task.md": "勾掉「定 angle」「列大纲」「写开头」；进行中改为「第二段正文」",
+        "next.md": "只保留一句：下一步写第二段正文（围绕「现象」段）",
+        "迭代记录.md": "本轮：选定 angle=门槛变高；大纲 5 段砍到 4 段；开头 250 字一稿；用词偏好替换",
+        "alignment.md": "不动（选题和文章核心目标未变）",
+        "project_context.md": "不动（用词替换是单次决策不是稳定偏好）",
+        "closing_hint": "应给一句下次开场提示，如「下次开场说：继续写第二段正文」"
+      },
+      "scoring_rubric": {
+        "保真度": "已完成项有没有全部勾、进行中是否准确",
+        "克制度": "alignment/project_context 该不动的有没有不动",
+        "可执行度": "next.md 是否是可直接执行的动作而不是含糊总结"
+      }
+    },
+    {
+      "id": "B",
+      "name": "中途共识转向（alignment 变化检测）",
+      "seed_transcript": [
+        {"role": "user", "content": "我们这个项目是「短视频脚本生成器」，目标用户是老人，UI 要极简。"},
+        {"role": "assistant", "content": "明确：目标用户老人；核心约束极简 UI、低认知负荷。先做需求文档。"},
+        {"role": "user", "content": "[需求文档讨论 3 轮，省略]"},
+        {"role": "user", "content": "等等改一下——先做给年轻自媒体人用，老人放第二阶段。老人那套需求文档先归档不删。"},
+        {"role": "assistant", "content": "确认转向：当前阶段目标用户=年轻自媒体人；老人方案进入 phase 2 backlog。"},
+        {"role": "user", "content": "[围绕新用户讨论 2 轮，确认 MVP 三个功能：脚本生成、爆款分析、一键发布]"},
+        {"role": "user", "content": "写完总结，归档。"}
+      ],
+      "archive_expectations": {
+        "alignment.md": "必须更新——当前阶段目标用户从「老人」改为「年轻自媒体人」；老人方案标注为 phase 2",
+        "迭代记录.md": "本轮关键决策：目标用户转向（含原因/接续安排）；MVP 三个功能确认",
+        "next.md": "下一步聚焦年轻自媒体人 MVP 的第一个具体子任务（如脚本生成模块需求细化）",
+        "task.md": "老人相关任务挪到 phase 2 backlog 或归档分区；新增 MVP 三功能拆解",
+        "project_context.md": "可加一条：项目有阶段拆分习惯，phase 1 / phase 2 分批推进",
+        "实施计划.md": "应该更新（阶段方案真的变化了）"
+      },
+      "scoring_rubric": {
+        "alignment 识别": "能不能识别这是「核心共识变化」而触发 alignment 更新（最重要）",
+        "信息无丢失": "老人方案是否被妥善 backlog 而不是直接删除",
+        "决策可追溯": "迭代记录是否写明转向原因和时间点"
+      }
+    }
+  ]
+}
