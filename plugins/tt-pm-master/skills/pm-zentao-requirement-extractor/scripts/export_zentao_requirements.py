@@ -32,6 +32,9 @@ STATUS_LABELS = {
     "planned": "已计划",
 }
 BLOCK_TAGS = {"p", "div", "li", "ul", "ol", "table", "tr", "section", "article", "h1", "h2", "h3", "h4"}
+BOLD_TAGS = {"strong", "b", "h1", "h2", "h3", "h4", "h5", "h6"}
+ITALIC_TAGS = {"em", "i"}
+BOLD_FONT_SIZE_THRESHOLD_PX = 18.0
 
 
 class DescriptionParser(HTMLParser):
@@ -40,19 +43,64 @@ class DescriptionParser(HTMLParser):
         self.base_url = base_url
         self.parts: list[str] = []
         self.images: list[str] = []
+        self.bold_tag_stack: list[str] = []
+        self.italic_tag_stack: list[str] = []
+
+    @staticmethod
+    def _is_styled_bold(attrs: list[tuple[str, str | None]]) -> bool:
+        for key, value in attrs:
+            if not value:
+                continue
+            if key == "size":
+                try:
+                    if float(value) >= 4:
+                        return True
+                except ValueError:
+                    pass
+                continue
+            if key != "style":
+                continue
+            style = value.replace(" ", "").lower()
+            if "font-weight:bold" in style:
+                return True
+            for weight in ("600", "700", "800", "900"):
+                if f"font-weight:{weight}" in style:
+                    return True
+            match = re.search(r"font-size:\s*([\d.]+)px", value, re.IGNORECASE)
+            if match and float(match.group(1)) >= BOLD_FONT_SIZE_THRESHOLD_PX:
+                return True
+        return False
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if tag == "br":
             self.parts.append("\n")
             return
-        if tag != "img":
+        if tag == "img":
+            attr_map = dict(attrs)
+            src = (attr_map.get("src") or "").strip()
+            if src:
+                url = normalize_asset_url(src, self.base_url)
+                self.images.append(url)
+                self.parts.append(f"\n\n![]({url})\n\n")
             return
-        attr_map = dict(attrs)
-        src = (attr_map.get("src") or "").strip()
-        if src:
-            self.images.append(normalize_asset_url(src, self.base_url))
+        if (tag in BOLD_TAGS) or self._is_styled_bold(attrs):
+            if not self.bold_tag_stack:
+                self.parts.append("**")
+            self.bold_tag_stack.append(tag)
+        if tag in ITALIC_TAGS:
+            if not self.italic_tag_stack:
+                self.parts.append("*")
+            self.italic_tag_stack.append(tag)
 
     def handle_endtag(self, tag: str) -> None:
+        if self.italic_tag_stack and self.italic_tag_stack[-1] == tag:
+            self.italic_tag_stack.pop()
+            if not self.italic_tag_stack:
+                self.parts.append("*")
+        if self.bold_tag_stack and self.bold_tag_stack[-1] == tag:
+            self.bold_tag_stack.pop()
+            if not self.bold_tag_stack:
+                self.parts.append("**")
         if tag in BLOCK_TAGS:
             self.parts.append("\n")
 
@@ -72,6 +120,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--base-url", help="ZenTao base URL, e.g. http://host/zentao/")
     parser.add_argument("--account", help="ZenTao account.")
     parser.add_argument("--password", help="ZenTao password.")
+    parser.add_argument(
+        "--assigned-to",
+        dest="assigned_to",
+        help=(
+            "Filter stories by assignedTo (account name or display name). "
+            "If omitted and --browse-url contains 'assignedtome', the logged-in account is used."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -91,7 +147,7 @@ def load_toml(path: Path) -> dict[str, Any]:
         return tomllib.load(handle)
 
 
-def config_candidates() -> list[Path]:
+def toml_config_candidates() -> list[Path]:
     paths: list[Path] = []
     codex_home = os.environ.get("CODEX_HOME")
     if codex_home:
@@ -107,6 +163,43 @@ def config_candidates() -> list[Path]:
     return deduped
 
 
+def json_config_candidates() -> list[Path]:
+    paths: list[Path] = []
+    claude_home = os.environ.get("CLAUDE_HOME")
+    if claude_home:
+        paths.append(Path(claude_home) / ".claude.json")
+        paths.append(Path(claude_home) / "settings.json")
+    paths.append(Path.home() / ".claude.json")
+    paths.append(Path.home() / ".claude" / "settings.json")
+    paths.append(Path.cwd() / ".mcp.json")
+    deduped: list[Path] = []
+    seen: set[Path] = set()
+    for path in paths:
+        if path not in seen:
+            deduped.append(path)
+            seen.add(path)
+    return deduped
+
+
+def _extract_zentao_env_from_json(data: Any) -> dict[str, str] | None:
+    if not isinstance(data, dict):
+        return None
+    servers = data.get("mcpServers")
+    if isinstance(servers, dict):
+        zentao = servers.get("zentao")
+        if isinstance(zentao, dict):
+            env = zentao.get("env")
+            if isinstance(env, dict):
+                return {str(k): str(v) for k, v in env.items() if isinstance(v, (str, int, float))}
+    projects = data.get("projects")
+    if isinstance(projects, dict):
+        for project_cfg in projects.values():
+            env = _extract_zentao_env_from_json(project_cfg)
+            if env:
+                return env
+    return None
+
+
 def load_zentao_settings() -> tuple[dict[str, str], str | None]:
     settings = {
         "base_url": os.environ.get("ZENTAO_BASE_URL", ""),
@@ -115,7 +208,23 @@ def load_zentao_settings() -> tuple[dict[str, str], str | None]:
     }
     source: str | None = None
 
-    for config_path in config_candidates():
+    for config_path in json_config_candidates():
+        if not config_path.exists():
+            continue
+        try:
+            data = json.loads(config_path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        env = _extract_zentao_env_from_json(data)
+        if not env:
+            continue
+        if not source:
+            source = str(config_path)
+        settings["base_url"] = settings["base_url"] or str(env.get("ZENTAO_BASE_URL", ""))
+        settings["account"] = settings["account"] or str(env.get("ZENTAO_ACCOUNT", ""))
+        settings["password"] = settings["password"] or str(env.get("ZENTAO_PASSWORD", ""))
+
+    for config_path in toml_config_candidates():
         if not config_path.exists():
             continue
         try:
@@ -142,9 +251,13 @@ def resolve_credentials(args: argparse.Namespace) -> tuple[str, str, str, str | 
 
     missing = [name for name, value in (("ZENTAO_BASE_URL", base_url), ("ZENTAO_ACCOUNT", account), ("ZENTAO_PASSWORD", password)) if not value]
     if missing:
-        hint = "Fill them in shell env or in ~/.codex/config.toml under [mcp_servers.zentao.env]."
+        hint = (
+            "Set them via shell env, or in Claude Code config "
+            "(~/.claude.json -> mcpServers.zentao.env, or project .mcp.json), "
+            "or legacy Codex ~/.codex/config.toml [mcp_servers.zentao.env]."
+        )
         if source:
-            hint = f"Fill them in shell env or in {source} under [mcp_servers.zentao.env]."
+            hint = f"Set them in shell env or in {source} (mcpServers.zentao.env)."
         raise SystemExit(f"Missing ZenTao settings: {', '.join(missing)}. {hint}")
 
     return ensure_trailing_slash(base_url), account, password, source
@@ -243,6 +356,36 @@ def status_label(status: str | None) -> str:
     return STATUS_LABELS.get(status, status)
 
 
+PRIORITY_LABELS = {
+    "1": "1（最高）",
+    "2": "2（高）",
+    "3": "3（中）",
+    "4": "4（低）",
+}
+
+
+def priority_label(value: Any) -> str:
+    if value in (None, "", 0, "0"):
+        return "未指定"
+    key = str(value).strip()
+    return PRIORITY_LABELS.get(key, key)
+
+
+def plan_label(plan_title: Any, plan_id: Any) -> str:
+    titles: list[str] = []
+    if isinstance(plan_title, list):
+        titles = [str(t).strip() for t in plan_title if t]
+    elif isinstance(plan_title, str):
+        titles = [t.strip() for t in plan_title.split(",") if t.strip()]
+    elif plan_title:
+        titles = [str(plan_title).strip()]
+    if titles:
+        return "、".join(titles)
+    if plan_id and str(plan_id).strip() not in ("0", ""):
+        return f"未命名计划（#{plan_id}）"
+    return "未关联计划"
+
+
 def format_date(value: str | None) -> str:
     if not value or value.startswith("0000-00-00"):
         return "未知"
@@ -265,7 +408,7 @@ def build_record(story: dict[str, Any], bug: dict[str, Any] | None, base_url: st
             images = bug_images
 
     if not description:
-        description = "需求正文主要通过截图说明。" if images else "无文本描述，需结合禅道原单或附件进一步确认。"
+        description = "无文本描述，需结合禅道原单或附件进一步确认。"
 
     return {
         "id": story.get("id", ""),
@@ -274,20 +417,56 @@ def build_record(story: dict[str, Any], bug: dict[str, Any] | None, base_url: st
         "images": images,
         "module": story.get("moduleTitle") or bug_payload.get("moduleTitle") or "未设置",
         "status": status_label(story.get("status")),
+        "priority": priority_label(story.get("pri")),
+        "plan": plan_label(story.get("planTitle"), story.get("plan")),
         "created_date": format_date(story.get("openedDate") or bug_payload.get("openedDate")),
         "product_name": story.get("productName") or bug_payload.get("productName") or f"产品{story.get('product', '')}",
     }
 
 
-def render_markdown(records: list[dict[str, Any]], product_id: int, product_name: str, source_ref: str, total: int) -> str:
+def resolve_assigned_filter(args: argparse.Namespace, account: str) -> str | None:
+    if args.assigned_to:
+        return args.assigned_to.strip() or None
+    if args.browse_url and "-assignedtome-" in args.browse_url:
+        return account or None
+    return None
+
+
+def story_matches_assignee(story: dict[str, Any], expected: str) -> bool:
+    raw = story.get("assignedTo")
+    if raw is None:
+        return False
+    if isinstance(raw, dict):
+        candidates: list[Any] = [raw.get("account"), raw.get("realname"), raw.get("id")]
+    elif isinstance(raw, list):
+        candidates = list(raw)
+    else:
+        candidates = [raw]
+    expected_str = str(expected)
+    return any(str(value) == expected_str for value in candidates if value not in (None, ""))
+
+
+def render_markdown(
+    records: list[dict[str, Any]],
+    product_id: int,
+    product_name: str,
+    source_ref: str,
+    total: int,
+    *,
+    assigned_filter: str | None = None,
+) -> str:
+    scope_line = f"- 范围：产品 `{product_id}`「{product_name}」研发需求，共 `{total}` 条"
+    if assigned_filter:
+        scope_line += f"，已按 assignedTo=`{assigned_filter}` 过滤，命中 `{len(records)}` 条"
     lines = [
         "# 禅道字段提取",
         "",
         f"- 来源页面：`{source_ref}`",
-        f"- 范围：产品 `{product_id}`「{product_name}」研发需求，共 `{total}` 条",
-        "- 提取字段：研发需求名称、需求描述、所属模块、当前状态、创建日期",
+        scope_line,
+        "- 提取字段：研发需求名称、需求描述（含内嵌截图）、所属模块、当前状态、优先级、计划、创建日期",
         "- 说明：所属模块优先取研发需求详情；若研发需求未挂模块，则补用源 Bug 模块；仍无法判断时标记为“未设置”",
-        "- 说明：需求描述中的截图按原禅道图片地址保留",
+        "- 说明：截图按禅道原 HTML 位置内嵌在需求描述中，不再单列",
+        "- 说明：优先级取禅道 `pri` 字段，1 最高 / 2 高 / 3 中 / 4 低；计划优先取 `planTitle`，多个用顿号拼接，仅有计划 ID 时记为「未命名计划（#id）」",
     ]
 
     for record in records:
@@ -296,21 +475,21 @@ def render_markdown(records: list[dict[str, Any]], product_id: int, product_name
                 "",
                 f"## {record['id']}",
                 "",
-                f"- 研发需求名称：{record['title']}",
-                "- 需求描述：",
+                f"**研发需求名称**：{record['title']}",
+                "",
+                "**需求描述**：",
+                "",
                 record["description"],
-                "- 需求描述截图：",
-            ]
-        )
-        if record["images"]:
-            lines.extend(f"![]({image})" for image in record["images"])
-        else:
-            lines.append("无")
-        lines.extend(
-            [
-                f"- 所属模块：{record['module']}",
-                f"- 当前状态：{record['status']}",
-                f"- 创建日期：{record['created_date']}",
+                "",
+                f"**所属模块**：{record['module']}",
+                "",
+                f"**当前状态**：{record['status']}",
+                "",
+                f"**优先级**：{record['priority']}",
+                "",
+                f"**计划**：{record['plan']}",
+                "",
+                f"**创建日期**：{record['created_date']}",
             ]
         )
 
@@ -349,6 +528,7 @@ def main() -> int:
 
     base_url, account, password, credential_source = resolve_credentials(args)
     token = get_token(base_url, account, password)
+    assigned_filter = resolve_assigned_filter(args, account)
 
     page = 1
     total = 0
@@ -366,6 +546,8 @@ def main() -> int:
         for story_stub in stories:
             story_id = story_stub.get("id")
             story_detail = request_json(base_url, f"/stories/{story_id}", token=token)
+            if assigned_filter and not story_matches_assignee(story_detail, assigned_filter):
+                continue
             bug_payload: dict[str, Any] | None = None
             from_bug = story_detail.get("fromBug")
             if from_bug:
@@ -386,7 +568,14 @@ def main() -> int:
     output_path = resolve_output_path(args, product_name, product_id)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     source_ref = args.browse_url or f"product={product_id}"
-    markdown = render_markdown(records, product_id, product_name, source_ref, total_for_header)
+    markdown = render_markdown(
+        records,
+        product_id,
+        product_name,
+        source_ref,
+        total_for_header,
+        assigned_filter=assigned_filter,
+    )
     output_path.write_text(markdown, encoding="utf-8")
 
     if credential_source:
