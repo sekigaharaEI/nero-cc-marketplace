@@ -1,7 +1,7 @@
 interface:
   display_name: "pm-zentao-requirement-extractor"
-  short_description: "从产品URL或产品ID批量导出禅道研发需求，并可按筛选条件生成按功能分组文件"
-  default_prompt: "使用 $pm-zentao-requirement-extractor 从禅道产品 URL 或产品 ID 批量提取研发需求，导出保留截图的字段提取 Markdown；如有计划等筛选条件，生成稳定命名的筛选/按功能分组文件，不生成分析报告。"
+  short_description: "从产品URL或产品ID批量导出禅道研发需求，并必须生成按功能分组文件"
+  default_prompt: "使用 $pm-zentao-requirement-extractor 从禅道产品 URL 或产品 ID 批量提取研发需求，导出保留截图的字段提取 Markdown，并继续生成稳定命名的按功能分组文件；如有计划等筛选条件，先筛选再分组，不生成分析报告。"
 
 policy:
   allow_implicit_invocation: true
